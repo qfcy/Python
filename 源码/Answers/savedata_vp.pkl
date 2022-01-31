@@ -1,0 +1,15 @@
+(lp0
+I7
+aI8
+aI3
+acdatetime
+datetime
+p1
+(S'Ý
+-\x1bD\xa0'
+p2
+tp3
+Rp4
+aI3
+aI00
+a.

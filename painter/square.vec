@@ -1,0 +1,5 @@
+ver:"1.3"
+width:400
+height:400
+data:[[(pad,pad),(width-pad,pad),(width-pad,height-pad),(pad,height-pad),(pad,pad)] for pad in range(0,width//2,5)]
+strokecolor:"brown"
