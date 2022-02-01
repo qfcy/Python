@@ -41,7 +41,11 @@ def select_area():
     window.bind('<Motion>',_move)
     window.bind('<B1-Motion>',_drag,)
     window.bind('<B1-ButtonRelease>',_release)
-    window.mainloop()
+    while 1:
+        try:
+            window.update()
+            time.sleep(0.01)
+        except tk.TclError:break # 窗口已关闭
     return area
 
 def main():
