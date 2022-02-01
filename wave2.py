@@ -25,7 +25,7 @@ def Beep(frequency,duration):
         fw.writeframes(data * (length // len(data)))
 
         f.seek(0);data=f.read()
-        with open(file,'wb') as f:f.write(data)
+        #with open(file,'wb') as f:f.write(data)
         cache[(frequency,duration)]=data
 
     PlaySound(data,SND_MEMORY)
