@@ -24,8 +24,8 @@ def generate(T,total,volume,sampwidth,sine=False):
 
 def Beep(frequency,duration,sine=False):
     global data
-    if (frequency,duration) in cache:
-        data=cache[(frequency,duration)]
+    if (frequency,duration,sine) in cache:
+        data=cache[(frequency,duration,sine)]
     else:
         len_= duration / 1000 # 秒
         sampwidth = 2
@@ -54,7 +54,7 @@ def Beep(frequency,duration,sine=False):
 
         f.seek(0);data=f.read()
         #with open(file,'wb') as f:f.write(data)
-        cache[(frequency,duration)]=data
+        cache[(frequency,duration,sine)]=data
 
     PlaySound(data,SND_MEMORY)
 
