@@ -173,6 +173,14 @@ Hello World!
             header = 16 if data[16]==227 else 12
             data=data[header:]
             return cls(marshal.loads(data))
+    @classmethod
+    def from_file(cls,filename):
+        if filename.lower().endswith('.pyc'):
+            return Code.from_pycfile(filename)
+        else: # .py或pyw文件 (默认utf-8编码)
+            with open(filename,'rb') as f:
+                data=f.read().decode('utf-8')
+            return Code(compile(data,filename,'exec'))
     def pickle(self,filename):
         with open(filename,'wb') as f:
             pickle.dump(self,f)
@@ -202,9 +210,10 @@ if __name__=="__main__":
     doctest.testmod()
     if len(sys.argv)>1:
             ps='>>> '
-            statement='c=Code.from_pycfile(%s)'%repr(sys.argv[1].strip('"'))
+            statement='c=Code.from_file(%s)'%repr(sys.argv[1].strip('"'))
             print(ps + statement)
-            exec(statement)
+            try:exec(statement)
+            except Exception:traceback.print_exc()
             while True:
                 try:
                     code=input(ps)

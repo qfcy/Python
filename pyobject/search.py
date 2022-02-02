@@ -42,11 +42,9 @@ all:是否将对象的特殊属性(如__init__)加入列表"""
     return list
 
 def make_iter(start_obj,recursions,all=False,level=0):
-    """创建一个迭代器, 类似make_list。
-make_iter创建的迭代器可能会返回重复的对象。
-start:开始搜索的对象
-recursion:递归次数
-all:是否将对象的特殊属性(如__init__)加入列表"""
+    """创建一个对象的迭代器, 功能、参数与make_list相同, 
+make_iter创建的迭代器可能会返回重复的对象, 而make_list不会。
+"""
     if level>=recursions:return
 
     for attr in dir(start_obj):
