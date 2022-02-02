@@ -1,4 +1,4 @@
-from pyobject.code_ import Code
+from pycodeobject.code_ import Code
 from inspect import iscode
 import marshal,os,sys
 try:
@@ -11,10 +11,10 @@ MARK=b"#####MyPython####"
 def extract_file(filename):
     # 将py,pyc文件还原为Code对象
     code=open(filename,'rb').read()
-    if filename.endswith('.pyc'):
+    if filename.lower().endswith('.pyc'):
         code=code[16:] if code[16]==227 else code[12:]
         return Code(marshal.loads(code))
-    else: # .py文件
+    else: # .py或pyw文件
         return Code(compile(code,__file__,'exec'))
 
 def to_b(int):
