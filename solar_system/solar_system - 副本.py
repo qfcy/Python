@@ -106,12 +106,14 @@ class GravSys:
                     tip+="""
 正在跟随: %s
 质量: %d""" % (self.following.name,self.following.m)
-                    if getattr(self.following,'sun',None):
+                    if getattr(self.following,'parent',None):
                         tip+="""
-与太阳距离: %d""" % self.following.distance(self.following.sun)
+到%s距离: %d""" % (self.following.parent.name,
+                self.following.distance(self.following.parent))
 
                 else:
                     tip+='\n\n'
+
                 self.writer.clear()
                 self.writer.goto(
                     scr.window_width()//2-160,scr.window_height()//2-80
@@ -205,13 +207,12 @@ class GravSys:
         else:dx=dy=0
         v = Vec2D((x - self.startx)/self.scale + dx,
                   (y - self.starty)/self.scale + dy)
-        # print(x_,v)
         
         if abs(Vec2D(x - self.startx,
                      y - self.starty)) < 9:
             self.switchpen(x,y)
             return
-        global craft
+
         craft=SpaceCraft(self,SPACECRAFT_MASS,x_,v,parent=self.following)
         craft.penup()
 
@@ -238,7 +239,8 @@ class Star(Turtle):
 
         self.setpos(self.x,self.y)
         
-        self.sun=sun or (self.gravSys.planets[0] if len(self.gravSys.planets) else None)
+        self.sun=sun or (self.gravSys.planets[0]if len(self.gravSys.planets) else None)
+        self.parent=parent or self.sun
         gravSys.planets.append(self)
         self.resizemode("user")
         self.setundobuffer(None)
@@ -249,10 +251,6 @@ class Star(Turtle):
     def init(self):
         if self.has_orbit:
             self.pendown()
-        dt = self.gravSys.dt
-        ax,ay = self.acc()
-        self.dx += dt*ax
-        self.dy += dt*ay
     def acc(self):
         # ** 计算行星的引力、加速度 **
         ax=ay=0
@@ -288,18 +286,24 @@ class Star(Turtle):
             self.left(self.rotation*self.gravSys.dt)
         elif self.sun:
             self.setheading(self.towards(self.sun))
-    def getsize(self):
+        if abs(self.x)>14000 or abs(self.y)>14000:
+            self.gravSys.removed_planets.append(self)
+            self.gravSys.planets.remove(self)
+            self.hideturtle()
+    def getsize(self): # 返回行星的显示大小
         return self._stretchfactor[0]*PLANET_SIZE*2
     def distance(self,other):
         return math.hypot(self.x-other.x,
                           self.y-other.y)
-    def grav(self,other):
+    def grav(self,other,r=None):
         # 计算两行星间的引力, F = G *m1*m2 / r**2
-        dx=other.x-self.x; dy=other.y-self.y
-        r = math.hypot(dx,dy)
+        if r is None:
+            dx=other.x-self.x; dy=other.y-self.y
+            r = math.hypot(dx,dy)
         return G * self.m * other.m / r**2
     def tide(self,other,radius=None):
-        # 计算行星对自身的潮汐力
+        # 计算行星受到的的潮汐力
+        other=other or self.parent
         radius=radius or self.getsize() / 2
         r1=self.distance(other)-radius
         r2=self.distance(other)+radius
@@ -375,11 +379,6 @@ class Star(Turtle):
             else:
                 self.orbit_color=self.color()[0]
         self.pencolor(self.orbit_color)
-    def getHillSphere(self,other=None):
-        # 获取行星希尔球半径
-        # 希尔球是环绕在天体（像是行星）周围的空间区域，其中被它吸引的天体受到它的控制，而不是被它绕行的较大天体（像是恒星）所控制。
-        other=other or self.sun
-        return self.distance(other) * (self.m/other.m/3) ** (1/3)
     def __repr__(self):
         return object.__repr__(self)[:-1] + " Name: %s"%self.name + '>'
 
@@ -446,7 +445,7 @@ class SpaceCraft(Star):
         self.pencolor('#333333')
         self.shapesize(self.gravSys.scale)
     def getsize(self):
-        return PLANET_SIZE
+        return self._stretchfactor[0] * PLANET_SIZE / 2
     def update(self):
         self.setpos((self.x+self.gravSys.scr_x)*self.gravSys.scale,
                     (self.y+self.gravSys.scr_y)*self.gravSys.scale)
@@ -458,6 +457,10 @@ class SpaceCraft(Star):
             else:dx=dy=0
             angle = math.atan2(self.dy - dy,self.dx - dx) * 180 / math.pi + 90
             self.setheading(angle)
+        if abs(self.x)>14000 or abs(self.y)>14000:
+            self.gravSys.removed_planets.append(self)
+            self.gravSys.planets.remove(self)
+            self.hideturtle()
 
 def main():
     global scr
@@ -475,9 +478,57 @@ def main():
               2.3,has_orbit=False,shape=('yellow',))
     sun.penup()
 
-    neptune = Star(gs, "海王星", NEPTUNE_MASS, (75000,0), (0, 10.4),
+    mercury = Star(gs,"水星",MERCURY_MASS, (60,0), (0,330),
+                   0.5, shape=("#b3b3b3","#7f7f7f","#4d4d4d"))
+
+    venus = Star(gs,"金星",VENUS_MASS, (-130,0), (0,-250),
+                 0.7, shape=("gold","brown","gold4"))
+
+    earth = Star(gs,"地球",EARTH_MASS, (260,0), (0,173),
+                 0.8, shape=("blue","#00008b","blue"))
+
+    moon = Star(gs,"月球",MOON_MASS, (269,0), (0,268),
+                0.5,shape=("#b3b3b3","#4d4d4d","gray30"),
+                has_orbit=False, parent=earth)
+
+    mars = Star(gs,"火星",MARS_MASS, (0,430), (-140, 0),
+                0.6, shape=("red","#8b0000","red"))
+    phobos = Star(gs,"火卫一",PHOBOS_MASS, (0,438), (-167, 0),
+                  0.1,shape=('circle',"orange"),
+                  has_orbit=False,parent=mars)
+    phobos.fillcolor("orange")
+
+    # 创建小行星
+    for i in range(10):
+        ast=RoundStar(gs,"小行星%d"%i, AST_MASS,(0,0),(0,0),
+                      0.05,has_orbit=False)
+        ast.setheading(randrange(360))
+        ast.forward(randrange(700,800))
+        ast.x,ast.y=ast.pos()
+        v = ast.pos().rotate(90)
+        ast.dx,ast.dy=v[0]/7,v[1]/7
+        ast.pu()
+        ast.color("gray")
+
+    # 木星及卫星
+    jupiter = Star(gs, "木星", JUPITER_MASS, (1100,0), (0, 86),
+                   1.2,shape=("#ffd39b","#8b7355","#8b6508"))
+    mw1 = Star(gs,"木卫一", MOON_MASS, (1125,0), (0,145),
+               0.05, shape=("circle","yellow"),
+               has_orbit=False,parent=jupiter)
+    mw2 = Star(gs,"木卫二", MOON_MASS, (1142,0), (0,134),
+               0.07,shape=("circle","#cd950c"),
+               has_orbit=False,parent=jupiter)
+    # 土星
+    saturn = Star(gs,"土星",SATURN_MASS, (2200,0), (0, 60),
+                  1.0, shape=("#fff68f","#8b864e","#8b864e"))
+    # 天王星
+    uranus = Star(gs, "天王星", URANUS_MASS, (0, 4300), (-43, 0),
+                  0.8, shape=("#add8e6","blue","blue"))
+    # 海王星
+    neptune = Star(gs, "海王星", NEPTUNE_MASS, (7500,0), (0, 34),
                    0.8, shape=("blue","#483d8b","#191970"))
-    hw2 = Star(gs, "海卫二", MOON_MASS, (76000,0), (0, 14.8),
+    hw2 = Star(gs, "海卫二", MOON_MASS, (7600,0), (0, 48),
                0.16, shape=("square","gray30"),
                has_orbit=False,parent=neptune)
     hw2.color("gray30")
@@ -495,13 +546,12 @@ def main():
     cv.bind_all("<Control-Key-h>",lambda event:gs.follow(earth))
     cv.bind_all("<Button-1>",gs.onclick)
     cv.bind_all("<B1-ButtonRelease>",gs.onrelease)
-    gs.follow(neptune)
+    #scr.tracer(1,0)
 
     gs.init()
-    globals().update(locals()) # 便于调试
     try:gs.start()
     except (Terminator,TclError):pass
-    
+    globals().update(locals()) # 便于调试
 
 if __name__ == '__main__':
     main()
