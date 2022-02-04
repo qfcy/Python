@@ -1,4 +1,4 @@
-﻿import pygame,random,sys,timer
+﻿import pygame,random,sys
 from pygame.colordict import THECOLORS
 
 SCREEN_SIZE=WIDTH,HEIGHT=640,480;BACKCOLOR=255,255,255
@@ -13,7 +13,6 @@ def mainloop(screen):
                 draw(screen)
 
 def draw(scr):
-    t=timer.Timer()
     scr.fill(BACKCOLOR)
     availble_colors=list(THECOLORS.keys())
     for n in range(100):
@@ -26,7 +25,6 @@ def draw(scr):
         line_width=random.randrange(1,3)
         pygame.draw.rect(scr,color,(left,top,width,height),line_width)
     pygame.display.flip()
-    t.printtime()
 
 def main():
     scr=pygame.display.set_mode(SCREEN_SIZE)
