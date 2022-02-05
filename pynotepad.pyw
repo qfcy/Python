@@ -257,6 +257,7 @@ class Editor(Tk):
     NORMAL_FONTSIZE=11
     FILETYPES=[("所有文件","*.*")]
     CONFIGFILE=os.getenv("userprofile")+"\.pynotepad.pkl"
+    AUTOWRAP=CHAR
 
     windows=[]
     def __init__(self,filename=""):
@@ -319,7 +320,8 @@ class Editor(Tk):
         self.msg.pack(side=LEFT)
 
         self.contents=ScrolledText(self,undo=True,width=75,height=24,
-                        font=(self.NORMAL_FONT,self.NORMAL_FONTSIZE,"normal"))
+                        font=(self.NORMAL_FONT,self.NORMAL_FONTSIZE,"normal"),
+                        wrap=self.AUTOWRAP)
         self.contents.pack(expand=True,fill=BOTH)
         self.contents.bind("<Key>",self.text_change)
         self.contents.bind("<B1-ButtonRelease>",self.update_status)
@@ -375,7 +377,7 @@ class Editor(Tk):
 
         view=Menu(self.contents,tearoff=False)
         self.is_autowrap=IntVar(self.contents) # 是否自动换行
-        self.is_autowrap.set(1)
+        self.is_autowrap.set(1 if self.AUTOWRAP!=NONE else 0)
         view.add_checkbutton(label="自动换行", command=self.set_wrap,
                              variable=self.is_autowrap)
         fontsize=Menu(self.contents,tearoff=False)
@@ -461,7 +463,7 @@ class Editor(Tk):
             self.contents['wrap'] = CHAR
         else:
             self.contents['wrap'] = NONE
-          # 注意:不需要此行代码
+          # 注意:由于tkinter会自动设置复选框, 所以不需要此行代码
 ##        self.is_autowrap.set(int(not self.is_autowrap.get()))
 
     def window_onkey(self,event):
@@ -532,8 +534,11 @@ class Editor(Tk):
                 sep='\\'
                 # self.update()
                 prev=sep.join(prev.split(sep)[0:-1])
-                data=to_bytes(prev)
-            self.status["text"]="偏移量: {} ({})".format(len(data),hex(len(data)))
+                try:data=to_bytes(prev)
+                except SyntaxError:data=None
+            if data is not None:
+                self.status["text"]="偏移量: {} ({})"\
+                                     .format(len(data),hex(len(data)))
         else:
             offset=self.contents.index(CURRENT).split('.')
             self.status["text"]="Ln: {}  Col: {}".format(*offset)
@@ -699,7 +704,8 @@ class Editor(Tk):
         font=self.contents['font'].split(' ')
         cfg={'NORMAL_CODING':self.coding.get(),
              'NORMAL_FONT': font[0],
-             'NORMAL_FONTSIZE': int(font[1])}
+             'NORMAL_FONTSIZE': int(font[1]),
+             'AUTOWRAP': self.contents['wrap']}
         with open(self.CONFIGFILE,'wb') as f:
             pickle.dump(cfg,f)
     def onfiledrag(self,files):
