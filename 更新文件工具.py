@@ -1,7 +1,7 @@
 # 程序功能: 更新目标目录中的文件, 进行数据备份
 # 用途: 包含大量文件的文件夹的备份, 解决备份文件夹时
 # 需要复制整个文件夹的问题
-import sys,os,shutil
+import sys,os,shutil,fnmatch
 from search_file import direc
 
 def normpath(path):
@@ -10,20 +10,41 @@ def normpath(path):
         path += '\\'
     return path
 
-if len(sys.argv) == 3:
-    src,dst = sys.argv[1:]
-else:
-    print('用法:%s <源目录> <目标目录>'%sys.argv[0])
-    src = normpath(input('输入源目录: ')).strip('"').strip()
-    dst = normpath(input('输入目标目录: ')).strip('"').strip()
-
 def copy2(src,dst):
     if not os.path.isdir(os.path.split(dst)[0]):
         os.makedirs(os.path.split(dst)[0],exist_ok=True)
     shutil.copy2(src,dst)
 
+def read_ig(): # 读取忽略文件列表
+    if ignore_listfile is not None:
+        with open(ignore_listfile,encoding="utf-8") as f:
+            line = f.readline().strip()
+            if line[0] not in ('$','#'): # 忽略注释
+                ignore_list.append(line)
+
+def check_ig(file): # 判断文件是否应被忽略
+    for ig in ignore_list:
+        if fnmatch.fnmatch(file,ig):
+            return True
+    return False
+
+if len(sys.argv) >= 3:
+    src,dst = sys.argv[1:3]
+    ignore_listfile = sys.argv[3] if len(sys.argv) >= 4 else None
+else:
+    print('用法:%s <源目录> <目标目录>'%sys.argv[0])
+    src = normpath(input('输入源目录: ')).strip('"').strip()
+    dst = normpath(input('输入目标目录: ')).strip('"').strip()
+    default = '.gitignore'
+    ignore_listfile = normpath(input('忽略的文件列表 (默认 %s): '%default)
+                               or default).strip('"').strip()
+
+ignore_list = [];read_ig()
+
 all_=False;ignore_all=False
 for file in direc(src,dirs=False):
+    if check_ig(file):continue
+
     dst_file = dst + file[len(src):] # 原为file.replace(src,'')
     if os.path.isfile(dst_file):
         # 用源目录中新的文件替换旧的文件
@@ -32,7 +53,7 @@ for file in direc(src,dirs=False):
             copy2(file,dst_file)
         elif os.stat(file).st_mtime < os.stat(dst_file).st_mtime:
             # 目标目录中文件较新时
-            
+
             if all_:
                 copy2(dst_file,file)
             elif not ignore_all:
@@ -54,6 +75,8 @@ for file in direc(src,dirs=False):
 # 删除目标目录中存在, 而源目录相同位置不存在的文件
 all_=False;ignore_all=False
 for file in direc(dst,dirs=False):
+    if check_ig(file):continue
+
     if not os.path.isfile(
         os.path.join(src, file[len(dst):].lstrip('\\'))):
         if all_:
@@ -72,6 +95,8 @@ for file in direc(dst,dirs=False):
 
 # 删除目标目录中存在, 而源目录不存在的空目录
 for dir_ in direc(dst,files=False):
+    if check_ig(dir):continue
+
     if not os.listdir(dir_)\
 and not os.path.isfile(os.path.join(src, dir_[len(dst):].lstrip('\\'))):
         os.removedirs(dir_)
