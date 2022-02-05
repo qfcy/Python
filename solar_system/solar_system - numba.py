@@ -28,7 +28,7 @@ except ImportError:
 
 __author__="七分诚意 qq:3076711200"
 __email__="3416445406@qq.com"
-__version__="1.2.2"
+__version__="1.2.2-nb"
 
 G = 8
 PLANET_SIZE=8 # 像素
