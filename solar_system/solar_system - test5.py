@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# 黑洞模拟
 """
 使用turtle模块的太阳系模拟程序
 
@@ -86,7 +87,7 @@ class GravSys:
         self.removed_planets=[]
         self.t = 0
         self.dt = 0.0005 # 速度
-        self.dt_s=1
+        self.dt_s=100
         #frameskip: 程序在绘制一帧之前跳过的帧数
         self.frameskip=10
         self.scale=1
@@ -257,7 +258,7 @@ class Star(Turtle):
 ##        self.v = Vec(max(min(self.v[0] + dt*a[0],MAX),-MAX),
 ##                     max(min(self.v[1] + dt*a[1],MAX),-MAX))# - Vec(2*dt,2*dt)
         self.v = self.v + dt*a
-        self.gravSys.dt=1/math.hypot(*self.v)**1.6*self.gravSys.dt_s
+        self.gravSys.dt=1/math.hypot(*self.v)**2.5*self.gravSys.dt_s
         speed=100/math.hypot(*self.v)
         self.v*=pow(speed,max(dt,0.00004))
     def update(self):

@@ -78,8 +78,8 @@ class GravSys:
     def init(self):
         for p in self.planets:
             p.init()
-    def start(self):
         self.__last_time=perf_counter()
+    def start(self):
         while True:
             # 计算行星的位置
             for _ in range(self.speed):

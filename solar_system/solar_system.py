@@ -36,7 +36,7 @@ SUN_MASS=1000000
 
 MERCURY_MASS=125
 VENUS_MASS=8000
-EARTH_MASS=10000
+EARTH_MASS=9000
 MOON_MASS=30
 MARS_MASS=700
 PHOBOS_MASS=2
@@ -78,8 +78,8 @@ class GravSys:
     def init(self):
         for p in self.planets:
             p.init()
-    def start(self):
         self.__last_time=perf_counter()
+    def start(self):
         while True:
             # 计算行星的位置
             for _ in range(self.speed):
@@ -259,7 +259,7 @@ class Star(Turtle):
     def acc(self):
         # ** 计算行星的引力、加速度 **
         index=self.gravSys.planets.index(self)
-        for i in range(index+1,len(self.gravSys.planets)):
+        for i in range(index,len(self.gravSys.planets)):
             planet=self.gravSys.planets[i]
             dx=planet.x-self.x
             dy=planet.y-self.y
@@ -417,8 +417,7 @@ class Sun(Star):
         Star.__init__(self,*args,**kw)
         self.keep_on_scr=True
     def acc(self):
-        index=self.gravSys.planets.index(self)
-        for i in range(index+1,len(self.gravSys.planets)):
+        for i in range(1,len(self.gravSys.planets)):
             planet=self.gravSys.planets[i]
             dx=planet.x-self.x
             dy=planet.y-self.y
@@ -503,7 +502,7 @@ def main():
     earth = Star(gs,"地球",EARTH_MASS, (260,0), (0,173),
                  0.8, shape=("blue","#00008b","blue"))
 
-    moon = Star(gs,"月球",MOON_MASS, (269,0), (0,268),
+    moon = Star(gs,"月球",MOON_MASS, (269,0), (0,262),
                 0.5,shape=("#b3b3b3","#4d4d4d","gray30"),
                 has_orbit=False, parent=earth)
 
