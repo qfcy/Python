@@ -26,7 +26,7 @@ except ImportError:
 
 __author__="七分诚意 qq:3076711200"
 __email__="3416445406@qq.com"
-__version__="1.2.04"
+__version__="1.2.2"
 
 G = 8
 PLANET_SIZE=8 # 像素
@@ -85,7 +85,11 @@ class GravSys:
             for _ in range(self.speed):
                 self.t += self.dt
                 for p in self.planets:
+                    p.acc()
+                for p in self.planets:
                     p.step()
+                for p in self.planets:
+                    p.ax=p.ay=0
             if self.following!=None:
                 self.scr_x=-self.following.x+self.key_x
                 self.scr_y=-self.following.y+self.key_y
@@ -251,34 +255,35 @@ class Star(Turtle):
     def init(self):
         if self.has_orbit:
             self.pendown()
+        self.ax=self.ay=0
     def acc(self):
         # ** 计算行星的引力、加速度 **
-        ax=ay=0
-        for planet in self.gravSys.planets:
-            if planet is not self:
-                dx=planet.x-self.x
-                dy=planet.y-self.y
-                try:
-                    # 简化前的代码
-                    #r = math.hypot(dx,dy)
-                    #f = G * self.m * planet.m / r**2
-                    # 将力分解为水平、竖直方向的力
-                    #ax+=f / self.m * dx / r
-                    #ay+=f / self.m * dy / r
-                    b = G * planet.m / math.hypot(dx,dy)**3
-                    ax+=b * dx
-                    ay+=b * dy
-                except ZeroDivisionError:pass
-        return ax,ay
+        index=self.gravSys.planets.index(self)
+        for i in range(index+1,len(self.gravSys.planets)):
+            planet=self.gravSys.planets[i]
+            dx=planet.x-self.x
+            dy=planet.y-self.y
+            try:
+                # 简化前的代码
+                #r = math.hypot(dx,dy)
+                #f = G * self.m * planet.m / r**2
+                # 将力分解为水平、竖直方向的力
+                #ax+=f / self.m * dx / r
+                #ay+=f / self.m * dy / r
+                b = G / math.hypot(dx,dy)**3
+                self.ax+=b * dx * planet.m
+                self.ay+=b * dy * planet.m
+                planet.ax-=b * dx * self.m
+                planet.ay-=b * dy * self.m
+            except ZeroDivisionError:pass
     def step(self):
         # 计算行星位置
         dt = self.gravSys.dt
+        self.dx += dt*self.ax
+        self.dy += dt*self.ay
+
         self.x+= dt*self.dx
         self.y+= dt*self.dy
-
-        ax,ay = self.acc()
-        self.dx += dt*ax
-        self.dy += dt*ay
     def update(self):
         self.setpos((self.x+self.gravSys.scr_x)*self.gravSys.scale,
                     (self.y+self.gravSys.scr_y)*self.gravSys.scale)
@@ -411,6 +416,17 @@ class Sun(Star):
     def __init__(self,*args,**kw):
         Star.__init__(self,*args,**kw)
         self.keep_on_scr=True
+    def acc(self):
+        index=self.gravSys.planets.index(self)
+        for i in range(index+1,len(self.gravSys.planets)):
+            planet=self.gravSys.planets[i]
+            dx=planet.x-self.x
+            dy=planet.y-self.y
+            try:
+                b = G * self.m / math.hypot(dx,dy)**3
+                planet.ax-=b * dx
+                planet.ay-=b * dy
+            except ZeroDivisionError:pass
     def step(self):
         pass
     def update(self):
