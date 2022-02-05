@@ -261,7 +261,7 @@ class Star(Turtle):
         self.ax=self.ay=0
     def acc(self):
         # ** 计算行星的引力、加速度 **
-        ax=ay=0;ax2=ay2=0;index=self.gravSys.planets.index(self)
+        index=self.gravSys.planets.index(self)
         for i in range(index+1,len(self.gravSys.planets)):
             planet=self.gravSys.planets[i]
             dx=planet.x-self.x
@@ -300,11 +300,11 @@ class Star(Turtle):
     def step(self):
         # 计算行星位置
         dt = self.gravSys.dt
-        self.x+= dt*self.dx
-        self.y+= dt*self.dy
-
         self.dx += dt*self.ax
         self.dy += dt*self.ay
+
+        self.x+= dt*self.dx
+        self.y+= dt*self.dy
     def update(self):
         self.setpos((self.x+self.gravSys.scr_x)*self.gravSys.scale,
                     (self.y+self.gravSys.scr_y)*self.gravSys.scale)
@@ -505,7 +505,7 @@ class Sun(Star):
         if self.rotation is not None:
             self.left(self.rotation*self.gravSys.dt)
     def acc(self):
-        ax=ay=0;ax2=ay2=0;index=self.gravSys.planets.index(self)
+        index=self.gravSys.planets.index(self)
         for i in range(1,len(self.gravSys.planets)):
             planet=self.gravSys.planets[i]
             dx=planet.x-self.x
