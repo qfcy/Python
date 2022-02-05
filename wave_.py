@@ -31,7 +31,7 @@ def Beep(frequency,duration,sine=False):
         sampwidth = 2
         framerate = 22050
         volume = 1 # 音量, 0-1
-        length = int(framerate * len_ * sampwidth)
+        #length = int(framerate * len_ * sampwidth)
         if sampwidth == 1: # 8位
             lst = list(generate(framerate / frequency, int(framerate*len_),
                             volume,sampwidth,sine))

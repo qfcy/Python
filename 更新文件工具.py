@@ -18,9 +18,10 @@ def copy2(src,dst):
 def read_ig(ignore_listfile): # 读取忽略文件列表
     l=[]
     with open(ignore_listfile,encoding="utf-8") as f:
-        line = f.readline().strip()
-        if line[0] not in ('$','#'): # 忽略注释
-            l.append(line)
+        for line in f:
+            line = line.strip()
+            if line[0] not in ('$','#'): # 忽略注释
+                l.append(line)
     return l
 
 def check_ig(file, ignore_list): # 判断文件是否应被忽略
@@ -46,6 +47,7 @@ def main():
 
     all_=False;ignore_all=False
     for file in direc(src,dirs=False):
+        print(check_ig(file, ignore_list))
         if check_ig(file, ignore_list):continue
 
         dst_file = dst + file[len(src):] # 原为file.replace(src,'')
@@ -65,7 +67,7 @@ def main():
                     if ans.lower().startswith('y'):
                         copy2(dst_file,file)
                     elif ans.lower() in ('a','all'):
-                        all=True;copy2(dst_file,file)
+                        all_=True;copy2(dst_file,file)
                     elif ans.lower() in ('i','ignore all'):
                         ignore_all=True
                 else:
@@ -98,7 +100,7 @@ def main():
 
     # 删除目标目录中存在, 而源目录不存在的空目录
     for dir_ in direc(dst,files=False):
-        if check_ig(dir, ignore_list):continue
+        if check_ig(dir_, ignore_list):continue
 
         if not os.listdir(dir_)\
     and not os.path.isfile(os.path.join(src, dir_[len(dst):].lstrip('\\'))):
