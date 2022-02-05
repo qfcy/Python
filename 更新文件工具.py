@@ -39,6 +39,7 @@ def main():
         src = normpath(input('输入源目录: ')).strip('"').strip()
         dst = normpath(input('输入目标目录: ')).strip('"').strip()
         default = '.gitignore'
+        if not os.path.isfile(default):default=None
         ignore_listfile = normpath(input('忽略的文件列表 (默认 %s): '%default)
                                    or default).strip('"').strip()
 
