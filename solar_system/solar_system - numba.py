@@ -9,8 +9,6 @@
 按“+”或“-”键增加或者降低速度。
 单击屏幕开启或关闭轨道显示。
 单击行星即可跟随该行星。
-
-1.2.04版: 增加了拖动鼠标发射飞船功能。
 """
 try:
     from time import perf_counter
@@ -28,7 +26,7 @@ except ImportError:
 
 __author__="七分诚意 qq:3076711200"
 __email__="3416445406@qq.com"
-__version__="1.2.2-nb"
+__version__="1.2.5-nb"
 
 G = 8
 PLANET_SIZE=8 # 像素
