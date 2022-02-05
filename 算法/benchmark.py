@@ -1,8 +1,14 @@
-from time import perf_counter
-l=[];t=[]
-for i in range(1,9):
-    s=perf_counter()
-    with open("%d.py"%i,'rb') as f:
-        d=f.read().decode()
-    t.append(perf_counter()-s)
-    l.append(d)
+import time,os
+
+files=30
+s=time.perf_counter()
+for i in range(files):
+    open(str(i),'wb').close()
+print('创建文件',time.perf_counter()-s)
+
+s=time.perf_counter()
+for i in range(files):
+    os.remove(str(i))
+
+print('删除文件',time.perf_counter()-s)
+input()
