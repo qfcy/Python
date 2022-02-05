@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# 使用numba库加速程序测试
 """
 使用turtle模块的太阳系模拟程序
 
@@ -8,6 +9,8 @@
 按“+”或“-”键增加或者降低速度。
 单击屏幕开启或关闭轨道显示。
 单击行星即可跟随该行星。
+
+1.2.04版: 增加了拖动鼠标发射飞船功能。
 """
 try:
     from time import perf_counter
@@ -17,6 +20,7 @@ from random import randrange
 import math,turtle
 from turtle import *
 from numba import jit
+
 try:
     from tkinter import TclError
 except ImportError:
@@ -24,7 +28,7 @@ except ImportError:
 
 __author__="七分诚意 qq:3076711200"
 __email__="3416445406@qq.com"
-__version__="1.2-nb"
+__version__="1.2.2"
 
 G = 8
 PLANET_SIZE=8 # 像素
@@ -34,7 +38,7 @@ SUN_MASS=1000000
 
 MERCURY_MASS=125
 VENUS_MASS=8000
-EARTH_MASS=10000
+EARTH_MASS=9000
 MOON_MASS=30
 MARS_MASS=700
 PHOBOS_MASS=2
@@ -44,43 +48,50 @@ JUPITER_MASS=12000
 SATURN_MASS=6000
 URANUS_MASS=9000
 NEPTUNE_MASS=8000
+SPACECRAFT_MASS = 1
 
 scr=None
 
 class GravSys:
     # 引力系统
     __slots__=['planets', 'removed_planets', 't', 'dt', 'speed',
-               'scale', 'scr_x', 'scr_y', 'key_x', 'key_y',
-               'show_fps','__last_time','writer','fps','following']
+               'scale', 'scr_x', 'scr_y',
+               'key_x', 'key_y','startx','starty',
+               'show_tip','__last_time','writer','fps','following']
     def __init__(self):
         self.planets = []
         self.removed_planets=[]
         self.t = 0
-        self.dt = 0.006 # 速度
+        self.dt = 0.004 # 速度
         #speed: 程序在绘制一帧之前执行计算的次数
-        self.speed=4
+        self.speed=6
         self.scale=1
         self.scr_x=self.key_x=0
         self.scr_y=self.key_y=0
-        self.show_fps=True;self.fps=20
+        self.show_tip=True;self.fps=20
         self.writer=Turtle()
         self.writer.hideturtle()
         self.writer.penup()
         self.writer.color("white")
+
         Star._init_shape()
         #following: 跟随某个行星
         self.following=None
     def init(self):
         for p in self.planets:
             p.init()
+        self.__last_time=perf_counter()
     def start(self):
         while True:
-            self.__last_time=perf_counter()
             # 计算行星的位置
             for _ in range(self.speed):
                 self.t += self.dt
                 for p in self.planets:
+                    p.acc()
+                for p in self.planets:
                     p.step()
+                for p in self.planets:
+                    p.ax=p.ay=0
             if self.following!=None:
                 self.scr_x=-self.following.x+self.key_x
                 self.scr_y=-self.following.y+self.key_y
@@ -92,15 +103,29 @@ class GravSys:
                 p.update()
             update()
             self.fps=1/(perf_counter()-self.__last_time)
+            self.__last_time=perf_counter()
 
             # 显示帧率
-            if self.show_fps:
+            if self.show_tip:
+                tip="fps:%d" % self.fps
+                if self.following:
+                    tip+="""
+正在跟随: %s
+质量: %d""" % (self.following.name,self.following.m)
+                    if getattr(self.following,'parent',None):
+                        tip+="""
+到%s距离: %d""" % (self.following.parent.name,
+                self.following.distance(self.following.parent))
+
+                else:
+                    tip+='\n\n'
+
                 self.writer.clear()
                 self.writer.goto(
-                    scr.window_width()//2-90,scr.window_height()//2-35
+                    scr.window_width()//2-160,scr.window_height()//2-80
                 )
                 self.writer.write(
-                    "fps:%d" % self.fps,
+                    tip,
                     font = (None,12)
                 )
     def follow(self,planet):
@@ -111,9 +136,9 @@ class GravSys:
         planet.onfollow(True)
         scr.ontimer(self.clear_scr, int(1000/self.fps))
     def increase_speed(self,event):
-        self.dt+=0.0006
+        self.dt+=0.0004
     def decrease_speed(self,event):
-        self.dt-=0.0006
+        self.dt-=0.0004
     def zoom(self,event):
         if event.keysym=="equal":
             # 放大
@@ -168,18 +193,47 @@ class GravSys:
 
         if targets:self.follow(max(targets,key=lambda p:p.m))
         self.clear_removed_planets()
-
     def clear_removed_planets(self):
         for planet in self.removed_planets:
             planet.clear()
         self.removed_planets=[]
 
-@jit('UniTuple(float64,2)(f8,f8,f8,f8,f8)',nopython=True)
-def _acc_nb(px,py,sx,sy,m):
+    def onclick(self,event):
+        x, y = (scr.cv.canvasx(event.x)/scr.xscale,
+                -scr.cv.canvasy(event.y)/scr.yscale)
+        # self.switchpen(x,y)
+        self.startx,self.starty=x,y
+    def onrelease(self,event):
+        x, y = (scr.cv.canvasx(event.x)/scr.xscale,
+                -scr.cv.canvasy(event.y)/scr.yscale)
+        x_ = Vec2D(x/self.scale - self.scr_x,
+                   y/self.scale - self.scr_y)
+        if self.following:
+            dx=self.following.dx;dy=self.following.dy
+        else:dx=dy=0
+        v = Vec2D((x - self.startx)/self.scale + dx,
+                  (y - self.starty)/self.scale + dy)
+        
+        if abs(Vec2D(x - self.startx,
+                     y - self.starty)) < 9:
+            self.switchpen(x,y)
+            return
+
+        craft=SpaceCraft(self,SPACECRAFT_MASS,x_,v,parent=self.following)
+        craft.penup()
+
+@jit('UniTuple(float64,4)(f8,f8,f8,f8,f8,f8,f8,f8,f8,f8)',nopython=True)
+def _acc_nb(sx,sy,px,py,m_s,m_p,s_ax,s_ay,p_ax,p_ay):
     dx=px-sx
     dy=py-sy
-    b = G * m / math.hypot(dx,dy)**3
-    return b * dx,b * dy
+    try:
+        b = G / math.hypot(dx,dy)**3
+        s_ax+=b * dx * m_p
+        s_ay+=b * dy * m_p
+        p_ax-=b * dx * m_s
+        p_ay-=b * dy * m_s
+    except:pass
+    return s_ax,s_ay,p_ax,p_ay
 
 class Star(Turtle):
     _light=_dark=_circle=None
@@ -216,30 +270,23 @@ class Star(Turtle):
     def init(self):
         if self.has_orbit:
             self.pendown()
-        dt = self.gravSys.dt
-        ax,ay = self.acc()
-        self.dx += dt*ax
-        self.dy += dt*ay
+        self.ax=self.ay=0
     def acc(self):
         # ** 计算行星的引力、加速度 **
-        ax=ay=0
-        for planet in self.gravSys.planets:
-            if planet is not self:
-                try:
-                    res=_acc_nb(planet.x,planet.y,self.x,self.y,planet.m)
-                    ax,ay=ax+res[0],ay+res[1]
-                except ZeroDivisionError:pass
-        return ax,ay
-    
+        index=self.gravSys.planets.index(self)
+        for i in range(index,len(self.gravSys.planets)):
+            planet=self.gravSys.planets[i]
+            self.ax,self.ay,planet.ax,planet.ay = \
+                _acc_nb(self.x,self.y,planet.x,planet.y,self.m,planet.m,
+                        self.ax,self.ay,planet.ax,planet.ay)
     def step(self):
         # 计算行星位置
         dt = self.gravSys.dt
+        self.dx += dt*self.ax
+        self.dy += dt*self.ay
+
         self.x+= dt*self.dx
         self.y+= dt*self.dy
-
-        ax,ay = self.acc()
-        self.dx += dt*ax
-        self.dy += dt*ay
     def update(self):
         self.setpos((self.x+self.gravSys.scr_x)*self.gravSys.scale,
                     (self.y+self.gravSys.scr_y)*self.gravSys.scale)
@@ -251,18 +298,20 @@ class Star(Turtle):
             self.gravSys.removed_planets.append(self)
             self.gravSys.planets.remove(self)
             self.hideturtle()
-    def getsize(self):
+    def getsize(self): # 返回行星的显示大小
         return self._stretchfactor[0]*PLANET_SIZE*2
     def distance(self,other):
         return math.hypot(self.x-other.x,
                           self.y-other.y)
-    def grav(self,other):
+    def grav(self,other,r=None):
         # 计算两行星间的引力, F = G *m1*m2 / r**2
-        dx=other.x-self.x; dy=other.y-self.y
-        r = math.hypot(dx,dy)
+        if r is None:
+            dx=other.x-self.x; dy=other.y-self.y
+            r = math.hypot(dx,dy)
         return G * self.m * other.m / r**2
     def tide(self,other,radius=None):
-        # 计算行星对自身的潮汐力
+        # 计算行星受到的的潮汐力
+        other=other or self.parent
         radius=radius or self.getsize() / 2
         r1=self.distance(other)-radius
         r2=self.distance(other)+radius
@@ -275,6 +324,7 @@ class Star(Turtle):
                 p.pendown()
             else:p.penup()
         #self.keep_on_scr=arg
+
     @classmethod
     def _init_shape(cls,QUALITY=32):
         if cls._light and cls._dark and cls._circle:return # 已经初始化
@@ -340,6 +390,14 @@ class Star(Turtle):
     def __repr__(self):
         return object.__repr__(self)[:-1] + " Name: %s"%self.name + '>'
 
+# 修复turtle模块绘制RoundStar的缺陷
+def _dot(self, pos, size, color):
+        dt=size/2
+        return self.cv.create_oval(pos[0]-dt,-(pos[1]-dt),
+                                   pos[0]+dt,-(pos[1]+dt),
+                                   fill=color,outline=color)
+turtle.TurtleScreenBase._dot = _dot
+
 class RoundStar(Star):
     def __init__(self,gravSys, name, m, x, v,
                  shapesize=1,shape=("blank","gray"),*args,**kw):
@@ -361,6 +419,16 @@ class Sun(Star):
     def __init__(self,*args,**kw):
         Star.__init__(self,*args,**kw)
         self.keep_on_scr=True
+    def acc(self):
+        for i in range(1,len(self.gravSys.planets)):
+            planet=self.gravSys.planets[i]
+            dx=planet.x-self.x
+            dy=planet.y-self.y
+            try:
+                b = G * self.m / math.hypot(dx,dy)**3
+                planet.ax-=b * dx
+                planet.ay-=b * dy
+            except ZeroDivisionError:pass
     def step(self):
         pass
     def update(self):
@@ -370,57 +438,57 @@ class Sun(Star):
             self.left(self.rotation*self.gravSys.dt)
         #Star.update(self)
 
+class SpaceCraft(Star):
+    flag=False;id=0
+    def __init__(self, gravSys, m, x, v,
+                 shapesize=1,has_orbit=True,
+                 parent=None,keep_on_scr=False,rotation=None):
+        SpaceCraft.id+=1
+        Star.__init__(self, gravSys, 'craft #%d' % SpaceCraft.id,
+                 m, x, v,
+                 shapesize,has_orbit,
+                 parent,keep_on_scr,rotation,shape=())
+        self.init()
+    @classmethod
+    def _init_shape(cls):
+        if SpaceCraft.flag:return
+        shape = Shape("compound")
+        shape.addcomponent(((0,0),(3.333,-6),(0,-4.667)),'#b3b3b3')
+        shape.addcomponent(((0,0),(-3.333,-6),(0,-4.667)),'#666666')
+        scr.register_shape('craft', shape)
+    def init_shape(self):
+        self._init_shape()
+        self.tilt(-90)
+        self.shape('craft')
+        self.pencolor('#333333')
+        self.shapesize(self.gravSys.scale)
+    def getsize(self):
+        return self._stretchfactor[0] * PLANET_SIZE / 2
+    def update(self):
+        self.setpos((self.x+self.gravSys.scr_x)*self.gravSys.scale,
+                    (self.y+self.gravSys.scr_y)*self.gravSys.scale)
+        if self.rotation is not None:
+            self.left(self.rotation*self.gravSys.dt)
+        else:
+            if self.gravSys.following:
+                dx=self.gravSys.following.dx;dy=self.gravSys.following.dy
+            else:dx=dy=0
+            angle = math.atan2(self.dy - dy,self.dx - dx) * 180 / math.pi + 90
+            self.setheading(angle)
+        if abs(self.x)>14000 or abs(self.y)>14000:
+            self.gravSys.removed_planets.append(self)
+            self.gravSys.planets.remove(self)
+            self.hideturtle()
+
 def main():
     global scr
     scr=Screen()
-    scr.screensize(10000,10000)
+    scr.screensize(6000,6000)
     try:
         scr._canvas.master.state("zoomed")
     except:pass
     scr.bgcolor("black")
     scr.tracer(0,0)
-
-    # create compound turtleshape for planets
-    s = Turtle()
-    s.reset()
-    s.ht()
-    s.pu()
-    s.fd(PLANET_SIZE)
-    s.lt(90)
-    s.begin_poly()
-    s.circle(PLANET_SIZE, 180,steps=12)
-    s.end_poly()
-    _light = s.get_poly()
-    s.begin_poly()
-    s.circle(PLANET_SIZE, 180,steps=12)
-    s.end_poly()
-    _dark = s.get_poly()
-    s.begin_poly()
-    s.circle(PLANET_SIZE,steps=32)
-    s.end_poly()
-    _circle = s.get_poly()
-    update()
-    s.hideturtle()
-    def create_shape(screen,name,light,dark=None):
-        shape = Shape("compound")
-        if dark is not None:
-            shape.addcomponent(_light,light)
-            shape.addcomponent(_dark,dark)
-        else:
-            shape.addcomponent(_circle,light)
-        screen.register_shape(name, shape)
-
-    create_shape(scr,"yellow","yellow")
-    create_shape(scr,"mercury","gray70","grey50")
-    create_shape(scr,"venus","gold","brown")
-    create_shape(scr,"earth","blue","blue4")
-    create_shape(scr,"moon","gray70","grey30")
-    create_shape(scr,"mars","red","red4")
-    create_shape(scr,"jupiter","burlywood1","burlywood4")
-    create_shape(scr,"mw2","#cd950c")
-    create_shape(scr,"saturn","khaki1","khaki4")
-    create_shape(scr,"uranus","light blue","blue")
-    create_shape(scr,"neptune","blue","dark slate blue")
 
     # setup gravitational system
     gs = GravSys()
@@ -437,7 +505,7 @@ def main():
     earth = Star(gs,"地球",EARTH_MASS, (260,0), (0,173),
                  0.8, shape=("blue","#00008b","blue"))
 
-    moon = Star(gs,"月球",MOON_MASS, (269,0), (0,268),
+    moon = Star(gs,"月球",MOON_MASS, (269,0), (0,262),
                 0.5,shape=("#b3b3b3","#4d4d4d","gray30"),
                 has_orbit=False, parent=earth)
 
@@ -494,15 +562,14 @@ def main():
     cv.bind_all("<Control-Key-equal>",gs.zoom) #Ctrl+"+"
     cv.bind_all("<Control-Key-minus>",gs.zoom) #Ctrl+"-"
     cv.bind_all("<Control-Key-h>",lambda event:gs.follow(earth))
+    cv.bind_all("<Button-1>",gs.onclick)
+    cv.bind_all("<B1-ButtonRelease>",gs.onrelease)
     #scr.tracer(1,0)
-    
 
-    scr.onclick(gs.switchpen)
-    #gs.follow(earth)
     gs.init()
     try:gs.start()
     except (Terminator,TclError):pass
-    globals().update(locals())
+    globals().update(locals()) # 便于调试
 
 if __name__ == '__main__':
     main()
