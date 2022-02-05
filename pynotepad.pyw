@@ -13,7 +13,7 @@ What's more, dragging and dropping files into the editor window is now supported
 编辑python代码文件时, 支持代码高亮显示, 类似IDLE。
 
 作者:qfcy (七分诚意)
-版本:1.2.8.05
+版本:1.2.8.6
 """
 import sys,os,time,pickle
 from tkinter import *
@@ -33,7 +33,7 @@ except ImportError:windnd=None
 
 __email__="3416445406@qq.com"
 __author__="七分诚意 qq:3076711200 邮箱:%s"%__email__
-__version__="1.2.8.05"
+__version__="1.2.8.6"
 
 def view_hex(bytes):
     result=''
@@ -54,8 +54,8 @@ def to_bytes(escape_str):
     # 将转义字符串转换为字节
     # -*****- 1.2.5版更新: 忽略二进制模式中文字的换行符
     escape_str=escape_str.replace('\n','')
-    escape_str=escape_str.replace('"""','\\"""')
-    escape_str=escape_str.replace("'''","\\'''")
+    escape_str=escape_str.replace('"""','\\"\\"\\"') # 避免引号导致的SyntaxError
+    escape_str=escape_str.replace("'''","\\'\\'\\'")
     try:
         return eval('b"""'+escape_str+'"""')
     except SyntaxError:
@@ -85,12 +85,12 @@ class SearchDialog(Toplevel):
         self.title(title)
         self.attributes("-toolwindow",True)
         self.attributes("-topmost",True)
-        self.bind("<Destroy>",self.onquit)
+        self.wm_protocol("WM_DELETE_WINDOW",self.onquit)
     def show(self):
         self.init_window()
         frame=Frame(self)
         ttk.Button(frame,text="查找下一个",command=self.search).pack()
-        ttk.Button(frame,text="退出",command=self.destroy).pack()
+        ttk.Button(frame,text="退出",command=self.onquit).pack()
         frame.pack(side=RIGHT,fill=Y)
         inputbox=Frame(self)
         Label(inputbox,text="查找内容:").pack(side=LEFT)
@@ -125,6 +125,7 @@ class SearchDialog(Toplevel):
             except Exception as err:
                 handle(err,parent=self);return
         text.tag_remove("sel","1.0",END)
+        # 默认从当前光标位置开始查找
         pos=text.search(key,INSERT,END,
                         regexp=self.use_regexpr.get(),
                         nocase=not self.match_case.get())
@@ -139,6 +140,17 @@ class SearchDialog(Toplevel):
             return pos,newpos
         elif bell: # 未找到
             bell_(widget=self)
+    def findnext(self,cursor_pos='end',mark=True):
+        # cursor_pos:标记文本后将光标放在找到文本开头还是末尾
+        # 因为search()默认从当前光标位置开始查找
+        # end 用于查找下一个操作, start 用于替换操作
+        result=self.search(mark=mark)
+        if not result:return
+        if cursor_pos=='end':
+            self.master.contents.mark_set('insert',result[1])
+        elif cursor_pos=='start':
+            self.master.contents.mark_set('insert',result[0])
+        return result
     def mark_text(self,start_pos,end_pos):
         text=self.master.contents
         text.tag_add("sel", start_pos,end_pos)
@@ -147,10 +159,10 @@ class SearchDialog(Toplevel):
         text.yview('moveto', str((lineno-text['height'])/lines)) # -****- 1.2.5版
         text.focus_force()
         self.master.update_status()
-    def onquit(self,event):
-        cls=self.__class__
-        if self in cls.instances:
-            cls.instances.remove(self)
+    def onquit(self):
+##        cls=self.__class__
+##        if self in cls.instances:cls.instances.remove(self)
+        self.withdraw()
 
 class ReplaceDialog(SearchDialog):
     #替换对话框
@@ -158,9 +170,11 @@ class ReplaceDialog(SearchDialog):
     def show(self):
         self.init_window(title="替换")
         frame=Frame(self)
+        ttk.Button(frame,text="查找下一个",command=
+                   lambda:self.findnext('start')).pack()
         ttk.Button(frame,text="替换",command=self.replace).pack()
         ttk.Button(frame,text="全部替换",command=self.replace_all).pack()
-        ttk.Button(frame,text="退出",command=self.destroy).pack()
+        ttk.Button(frame,text="退出",command=self.onquit).pack()
         frame.pack(side=RIGHT,fill=Y)
 
         inputbox=Frame(self)
@@ -182,23 +196,46 @@ class ReplaceDialog(SearchDialog):
         options=Frame(self)
         self.create_options(options)
         options.pack(fill=X)
-    def replace(self,bell=True):
+        
+    def replace(self,bell=True,mark=True):
         text=self.master.contents
         result=self.search(mark=False,bell=bell)
         if not result:return -1 #-1标志已无文本可替换
         self.master.text_change()
         pos,newpos=result
         newtext=self.text_to_replace.get()
+        if self.use_escape_char.get():
+            newtext=to_bytes(newtext).decode(self.master.coding.get())
+        if self.use_regexpr.get():
+            old=text.get(pos,newpos)
+            newtext=re.sub(self.keyword.get(),newtext,old)
         text.delete(pos,newpos)
         text.insert(pos,newtext)
         end_pos="%s+%dc"%(pos,len(newtext))
-        self.mark_text(pos,end_pos)
-
+        if mark:self.mark_text(pos,end_pos)
+        return pos,end_pos
     def replace_all(self):
         self.master.contents.mark_set("insert","1.0")
-        flag=False
-        while self.replace(bell=False)!=-1:
-            flag=True
+        flag=False # 标志是否已有文字被替换
+
+        # 以下代码会导致无限替换, 使程序卡死, 新的代码修复了该bug
+        #while self.replace(bell=False)!=-1:
+        #    flag=True
+        last = (0,0)
+        while True:
+            result=self.replace(bell=False,mark=False)
+            if result==-1:break
+            flag = True
+            ln,col = self.findnext('start',mark=False)[0].split('.')
+            ln,col = int(ln),int(col)
+            # 判断新的偏移量是增加还是减小
+            if ln < last[0]:
+                self.mark_text(*result) # 已完成一轮替换
+                break
+            elif ln==last[0] and col<last[1]:
+                self.mark_text(*result)
+                break
+            last=ln,col
         if not flag:bell_()
      
 class Editor(Tk):
@@ -322,7 +359,9 @@ class Editor(Tk):
         self.editmenu.add_separator()
         self.editmenu.add_command(label="查找",accelerator="Ctrl+F",
                                   command=lambda:self.show_dialog(SearchDialog))
-        self.editmenu.add_command(label="替换",
+        self.editmenu.add_command(label="查找下一个",accelerator="F3",
+                                  command=self.findnext)
+        self.editmenu.add_command(label="替换",accelerator="Ctrl+H",
                                   command=lambda:self.show_dialog(ReplaceDialog))
 
         view=Menu(self.contents,tearoff=False)
@@ -373,12 +412,21 @@ class Editor(Tk):
 
     def show_dialog(self,dialog_type):
         # dialog_type是对话框的类型
-        for window in dialog_type.instances:
-            if window.master is self:
-                window.focus_force()
-                return # 不重复显示对话框
+        for dialog in dialog_type.instances:
+            if dialog.master is self:
+                dialog.state('normal') # 恢复隐藏的窗口
+                dialog.focus_force()
+                return # 不再显示新的对话框
         dialog_type(self).show()
-
+    def findnext(self):
+        for dialog in SearchDialog.instances:
+            if dialog.master is self:
+                dialog.findnext()
+                return
+        for dialog in ReplaceDialog.instances:
+            if dialog.master is self:
+                dialog.findnext()
+                return
     def set_fontsize(self,index):
         newsize=self.FONTSIZES[index]
         fontname=self.contents["font"].split(' ')[0]
@@ -417,23 +465,27 @@ class Editor(Tk):
                 self.save()
             elif key=='f':
                 self.show_dialog(SearchDialog)
+            elif key=='h':
+                self.show_dialog(ReplaceDialog)
             elif key=='equal':#Ctrl+ "+" 增大字体
                 self.increase_font()
             elif key=='minus':#Ctrl+ "-" 减小字体
                 self.decrease_font()
+        elif event.keysym.lower()=='f3':
+            self.findnext()
     def focus(self,event):
         # 当窗口获得或失去焦点时,调用此函数, 用于使对话框置于主窗体前
-        for window in SearchDialog.instances + ReplaceDialog.instances:
-            if window.master is self:
+        for dialog in SearchDialog.instances + ReplaceDialog.instances:
+            if dialog.master is self and not dialog.wm_state()=='withdrawn':
                 if event.type==EventType.FocusIn:
-                    window.attributes("-topmost",True)
-                    if not window.wm_state()=="normal":
-                        window.deiconify()
+                    dialog.attributes("-topmost",True)
+                    if not dialog.wm_state()=="normal":
+                        dialog.deiconify()
                     self.contents.focus_force()
                 else:
-                    window.attributes("-topmost",False)
+                    dialog.attributes("-topmost",False)
                     if self.wm_state()=="iconic":
-                        window.withdraw()
+                        dialog.withdraw()
                         #window.iconify()
                 break
 
