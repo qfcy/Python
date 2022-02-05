@@ -124,7 +124,6 @@ class SearchDialog(Toplevel):
             try:key=str(to_bytes(key),encoding=self.coding)
             except Exception as err:
                 handle(err,parent=self);return
-        text.tag_remove("sel","1.0",END)
         # 默认从当前光标位置开始查找
         pos=text.search(key,INSERT,END,
                         regexp=self.use_regexpr.get(),
@@ -153,6 +152,7 @@ class SearchDialog(Toplevel):
         return result
     def mark_text(self,start_pos,end_pos):
         text=self.master.contents
+        text.tag_remove("sel","1.0",END)
         text.tag_add("sel", start_pos,end_pos)
         lines=text.get('1.0',END)[:-1].count(os.linesep) + 1
         lineno=int(start_pos.split('.')[0])
@@ -170,11 +170,10 @@ class ReplaceDialog(SearchDialog):
     def show(self):
         self.init_window(title="替换")
         frame=Frame(self)
-        ttk.Button(frame,text="查找下一个",command=
-                   lambda:self.findnext('start')).pack()
-        ttk.Button(frame,text="替换",command=self.replace).pack()
-        ttk.Button(frame,text="全部替换",command=self.replace_all).pack()
-        ttk.Button(frame,text="退出",command=self.onquit).pack()
+        ttk.Button(frame,text="查找下一个", command=self._findnext).pack()
+        ttk.Button(frame,text="替换", command=self.replace).pack()
+        ttk.Button(frame,text="全部替换", command=self.replace_all).pack()
+        ttk.Button(frame,text="退出", command=self.onquit).pack()
         frame.pack(side=RIGHT,fill=Y)
 
         inputbox=Frame(self)
@@ -196,7 +195,17 @@ class ReplaceDialog(SearchDialog):
         options=Frame(self)
         self.create_options(options)
         options.pack(fill=X)
-        
+    def _findnext(self):
+        text=self.master.contents
+        sel_range=text.tag_ranges('sel') # 获得选区的起点和终点
+        if sel_range:
+            selectarea = sel_range[0].string, sel_range[1].string
+            result = self.findnext('start')
+            if result[0] == selectarea[0]: # 若仍停留在原位置
+                text.mark_set('insert',result[1])
+                self.findnext('start')
+        else:
+            self.findnext('start')
     def replace(self,bell=True,mark=True):
         text=self.master.contents
         result=self.search(mark=False,bell=bell)
