@@ -48,7 +48,6 @@ def main():
 
     all_=False;ignore_all=False
     for file in direc(src,dirs=False):
-        print(check_ig(file, ignore_list))
         if check_ig(file, ignore_list):continue
 
         dst_file = dst + file[len(src):] # 原为file.replace(src,'')
