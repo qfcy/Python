@@ -43,6 +43,7 @@ PYTHON_MAGIC_WORDS = {
     '3.5': __build_magic(3350),
     '3.6': __build_magic(3360),
     '3.7': __build_magic(3390),
+    '3.8': __build_magic(3400),
 }
 
 
