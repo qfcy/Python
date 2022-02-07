@@ -7,7 +7,7 @@ from time import sleep, perf_counter
 
 __email__="3416445406@qq.com"
 __author__="七分诚意 qq:3076711200 邮箱:%s"%__email__
-__version__="1.0"
+__version__="1.0.3"
 
 class Star(Turtle):
     def __init__(self):
@@ -36,8 +36,16 @@ class Star(Turtle):
 def main():
     num=20 # 星星个数
     scr=Screen()
-    #scr._canvas.master.attributes("-fullscreen",True)
-    #scr._canvas["bd"]=None
+    win=scr._canvas.master
+    # 使窗口全屏, 并隐藏画布_canvas的边框
+    win.overrideredirect(True)
+    #win.attributes("-fullscreen",True)
+    x,y,w,h = 0,0, win.winfo_screenwidth(),win.winfo_screenheight()
+    bd = scr._canvas["borderwidth"] or 4
+    x-=bd;y-=bd;w+=bd*2;h+=bd*2
+    win.geometry('%dx%d+%d+%d'% (w,h,x,y))
+    onscreenclick(lambda x,y:win.destroy()) # 单击屏幕退出
+
     colormode(255)
     bgcolor("black")
     tracer(False)
