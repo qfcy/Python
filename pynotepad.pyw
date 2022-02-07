@@ -13,7 +13,7 @@ What's more, dragging and dropping files into the editor window is now supported
 编辑python代码文件时, 支持代码高亮显示, 类似IDLE。
 
 作者:qfcy (七分诚意)
-版本:1.2.8.6
+版本:1.2.8.7
 """
 import sys,os,time,pickle
 from tkinter import *
@@ -33,7 +33,7 @@ except ImportError:windnd=None
 
 __email__="3416445406@qq.com"
 __author__="七分诚意 qq:3076711200 邮箱:%s"%__email__
-__version__="1.2.8.6"
+__version__="1.2.8.7"
 
 def view_hex(bytes):
     result=''
@@ -673,6 +673,9 @@ class Editor(Tk):
                     data=to_bytes(text)
                 else:
                     data=bytes(text,encoding=self.coding.get(),errors='replace')
+                # Text文本框的bug:避免多余的\r换行符
+                # 如:输入文字foobar, data中变成\rfoobar
+                data=data.replace(b'\r',b'')
                 with open(filename, 'wb') as f:
                     f.write(data)
                 self.filename=filename
