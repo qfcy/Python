@@ -36,7 +36,7 @@ SUN_MASS=1000000
 
 MERCURY_MASS=125
 VENUS_MASS=8000
-EARTH_MASS=10000
+EARTH_MASS=9000
 MOON_MASS=30
 MARS_MASS=700
 PHOBOS_MASS=2
@@ -487,7 +487,7 @@ def main():
     earth = Star(gs,"地球",EARTH_MASS, (260,0), (0,173),
                  0.8, shape=("blue","#00008b","blue"))
 
-    moon = Star(gs,"月球",MOON_MASS, (269,0), (0,268),
+    moon = Star(gs,"月球",MOON_MASS, (269,0), (0,262),
                 0.5,shape=("#b3b3b3","#4d4d4d","gray30"),
                 has_orbit=False, parent=earth)
 
