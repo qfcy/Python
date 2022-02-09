@@ -10,7 +10,7 @@ try:
 except ImportError:COLORS=console_tool=None
 else: COLORS=["white"]+console_tool.RAINBOW*2
 
-music1="123 3 3 345 5 5  54321"
+music1="123 3 3 345 5 5- 54321"
 music2="53100 5310"
 freqs=[None,264,297,330,352,396,440,495,528,556]
 music_icon=""
@@ -31,7 +31,7 @@ def print_icon(freq=None,icon=music_icon,console=None,
     else:print(icon,end=" ",flush=True)
 
 def music(notation,duration=250):
-    """使用re模块解析曲谱的生成器
+    """解析曲谱的生成器。
 notation:一段简谱
 duration:一个音符播放的时间
 用法:
@@ -40,12 +40,19 @@ duration:一个音符播放的时间
 ...     Beep(freq,duration)
 ...
 >>> """
-    patt=re.compile(r"([0-9](\-| ){0,8})")
-    for pitch in re.findall(patt,notation):
-        pitch=pitch[0]
-        if pitch[0]=="0":time.sleep(duration/1000)
+    i = 0
+    while i<len(notation):
+        pitch=notation[i]
+        if pitch[0] in (" ","0"):
+            time.sleep(duration/1000)
         else:
-            yield freqs[int(pitch[0])],duration*len(pitch)
+            if i!=len(notation)-1:
+                # 计算'-'符号的个数
+                for j in range(i + 1,len(notation)):
+                    if notation[j] != '-':break
+                count = j-i-1; i = j-1
+            yield freqs[int(pitch)],duration*(len(pitch)+count)
+        i += 1
 
 def sinewave(times,duration=100):
     pitch=None
@@ -58,7 +65,7 @@ def __demo(console=None):
     else:t=None
     
     cost_time=0
-    for freq,duration in music(music1,125):
+    for freq,duration in music(music1,210):
         print_icon(freq,console=console)
         Beep(freq,duration,sine=True)
         cost_time+=duration
