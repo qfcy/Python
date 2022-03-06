@@ -13,7 +13,7 @@ What's more, dragging and dropping files into the editor window is now supported
 编辑python代码文件时, 支持代码高亮显示, 类似IDLE。
 
 作者:qfcy (七分诚意)
-版本:1.2.8.7
+版本:1.2.8.8
 """
 import sys,os,time,pickle
 from tkinter import *
@@ -33,12 +33,12 @@ except ImportError:windnd=None
 
 __email__="3416445406@qq.com"
 __author__="七分诚意 qq:3076711200 邮箱:%s"%__email__
-__version__="1.2.8.7"
+__version__="1.2.8.8"
 
 def view_hex(bytes):
     result=''
     for i in range(0,len(bytes)):
-        result+= hex(bytes[i])[2:].zfill(2) + ' '
+        result+= bytes[i:i+1].hex().zfill(2) + ' '
         if (i+1) % 4 == 0:result+='\n'
     return result
 
@@ -336,12 +336,14 @@ class Editor(Tk):
             self.charmap.pack(fill=Y)
             self.status.pack_forget()
             self.status.pack(fill=X)
+            self.editmenu.entryconfig(8,state=NORMAL)
         else: # 隐藏工具
             if self.bin_data:
                 self.bin_data.pack_forget()
             if self.charmap:
                 self.charmap.pack_forget()
             self.status.pack(side=RIGHT)
+            self.editmenu.entryconfig(8,state=DISABLED)
     def create_menu(self):
         menu=Menu(self)
         filemenu=Menu(self,tearoff=False)
@@ -374,6 +376,9 @@ class Editor(Tk):
                                   command=self.findnext)
         self.editmenu.add_command(label="替换",accelerator="Ctrl+H",
                                   command=lambda:self.show_dialog(ReplaceDialog))
+        self.editmenu.add_separator()
+        self.editmenu.add_command(label="插入十六进制数据",state=DISABLED,
+                                  command=self.insert_hex)
 
         view=Menu(self.contents,tearoff=False)
         self.is_autowrap=IntVar(self.contents) # 是否自动换行
@@ -619,6 +624,16 @@ class Editor(Tk):
                     return 0 # 表示取消
             # return data.replace('\r','')
             return data
+    def insert_hex(self):
+        hex = simpledialog.askstring('',
+                    "输入WinHex十六进制数据(如:00 1a 3d ff) :")
+        if hex is None:return
+        try:
+            data=bytes.fromhex(hex)
+            self.contents.insert('insert',to_escape_str(data))
+        except Exception as err:
+            handle(err,parent=self)
+
     def change_title(self):
         file = os.path.split(self.filename)[1] or "未命名"
         newtitle="PyNotepad - "+ file +\
