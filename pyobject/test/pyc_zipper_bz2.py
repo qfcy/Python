@@ -7,7 +7,7 @@ try:
 except ImportError:
     from importlib._bootstrap import MAGIC_NUMBER
 
-def dump_to_pyc(pycfilename,code):
+def dump_to_pyc(pycfilename,code,pycheader=None):
     c=Code()
 # 反汇编的co_code
 ##2     0 LOAD_CONST               0 (455)
@@ -38,10 +38,12 @@ e\x01\xa0\x03e\x00\xa0\x04d\x02\xa1\x01\xa1\x01\x83\x01\x01\x00d\x01S\x00'''
     c.co_stacksize=6
     with open(pycfilename,'wb') as f:
         # 写入 pyc 文件头
-        if sys.winver >= '3.7':
-            pycheader=MAGIC_NUMBER+b'\x00'*12
-        else:
-            pycheader=MAGIC_NUMBER+b'\x00'*8
+        if pycheader is None:
+            # 自动生成 pyc 文件头
+            if sys.winver >= '3.7':
+                pycheader=MAGIC_NUMBER+b'\x00'*12
+            else:
+                pycheader=MAGIC_NUMBER+b'\x00'*8
         f.write(pycheader)
         # 写入bytecode
         marshal.dump(c._code,f)
@@ -66,9 +68,12 @@ if len(sys.argv) == 1:
 
 for file in sys.argv[1:]:
     data=open(file,'rb').read()
-    data=data[16:] if data[16]==227 else data[12:]
+    if data[16]==227:
+        old_header=data[:16];data=data[16:]
+    else:
+        old_header=data[:12];data=datadata[12:]
     co = Code(marshal.loads(data))
 
     process_code(co)
-    dump_to_pyc(file,co)
+    dump_to_pyc(file,co,pycheader=old_header)
     print('Processed:',file)

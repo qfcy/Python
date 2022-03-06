@@ -7,14 +7,16 @@ try:
 except ImportError:
     from importlib._bootstrap import MAGIC_NUMBER
 
-def dump_to_pyc(pycfilename,code):
+def dump_to_pyc(pycfilename,code,pycheader=None):
     # 制作pyc文件
     with open(pycfilename,'wb') as f:
         # 写入 pyc 文件头
-        if sys.winver >= '3.7':
-            pycheader=MAGIC_NUMBER+b'\x00'*12
-        else:
-            pycheader=MAGIC_NUMBER+b'\x00'*8
+        if pycheader is None:
+            # 自动生成 pyc 文件头
+            if sys.winver >= '3.7':
+                pycheader=MAGIC_NUMBER+b'\x00'*12
+            else:
+                pycheader=MAGIC_NUMBER+b'\x00'*8
         f.write(pycheader)
         # 写入bytecode
         marshal.dump(code._code,f)
@@ -36,11 +38,14 @@ def process_code(co):
 
 def process(file):
     data=open(file,'rb').read()
-    data=data[16:] if data[16]==227 else data[12:]
+    if data[16]==227:
+        old_header=data[:16];data=data[16:]
+    else:
+        old_header=data[:12];data=datadata[12:]
     co = Code(marshal.loads(data))
 
     process_code(co)
-    dump_to_pyc(file,co)
+    dump_to_pyc(file,co,pycheader=old_header)
     print('Processed:',file)
 
 sys.path.append('\\'.join(__file__.split('\\')[:-3]))
