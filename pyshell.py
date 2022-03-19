@@ -1,33 +1,39 @@
 # coding:utf-8
-import sys,os,traceback,marshal,builtins
+import sys,os, traceback,marshal,builtins, warnings, platform
 import runpy
+try: # 用于打开pyc文件
+    from importlib._bootstrap_external import MAGIC_NUMBER
+except ImportError:
+    from importlib._bootstrap import MAGIC_NUMBER
 
-vars={"__annotations__":{},"__builtins__":__builtins__,"__doc__":None,
+# 默认的环境变量
+vars_={"__annotations__":{},"__builtins__":__builtins__,"__doc__":None,
       "__loader__":__loader__,"__name__":"__main__","__package__":None,
-      "__spec__":None,"sys":sys,"os":os}
+      "__spec__":None}
 _TITLE="PyShell"
-__version__="1.3.2"
+__version__="1.3.3"
 
 def exec_code(code,line=0):
     # 执行代码
     try:
-##        result=eval(code,vars)
+##        result=eval(code,vars_) # 旧版:尝试使用exec或eval, eval是默认
 ##        builtins._ = result
 ##        if result is not None:print(repr(result))
 ##    except SyntaxError:
 ##        try:
-##            exec(code,vars)
+##            exec(code,vars_)
 ##        except BaseException as err:
 ##            try:raise err from None
-##            except:handle(err)
+##            except:handle()
         if code.strip():
-            exec(compile(code,'<PyShell #{}>'.format(line),'single'),vars)
-    except BaseException as err:
-        handle(err)
+            exec(compile(code,'<PyShell #{}>'.format(line),'single'),vars_)
+    except BaseException:handle()
 
 def run_file(filename):
     code=open(filename,'rb').read()
-    if filename.endswith(".pyc"):
+    if filename.lower().endswith(".pyc"):
+        if code[:4] != MAGIC_NUMBER:
+            warnings.warn("警告: Pyc文件头不匹配。")
         code=code[16:] if code[16]==227 else code[12:]
         code=marshal.loads(code)
     else:
@@ -35,14 +41,15 @@ def run_file(filename):
     backup=sys.argv
     sys.argv=sys.argv[1:]
     sys.path.append(os.path.split(filename)[0])
-    vars["__file__"]=filename
-    exec(code,vars)
+    vars_["__file__"]=filename
+    try:exec(code,vars_)
+    except BaseException:handle()
     sys.argv=backup
 
-def in_pythonw():
-    return "pythonw.exe" in sys.executable or "pyshellw.exe" in sys.executable
+def in_pythonw(): # 判断是否为pythonw(无控制台窗口)的环境
+    return "pythonw.exe" in sys.executable or "pyshell_w.exe" in sys.executable
 
-def handle(err):
+def handle():
     traceback.print_exc()
 
 def ask_for_exit(console=None):
@@ -54,45 +61,74 @@ def ask_for_exit(console=None):
     except KeyboardInterrupt:
         return ask_for_exit(console)
 
+def help():
+    print("""用法 Usage:\n
+    pyshell 某py,pyw或pyc文件: 运行脚本。
+    pyshell -c <Python代码> : 运行指定的Python指令。
+    pyshell -m <模块名称> : 运行一个模块。
+    pyshell -i <其他参数>: 运行脚本或模块后进入交互模式, 建议用于调试python脚本。
+    pyshell <其他参数> --no-autoexec : 不自动运行autoexec.py。
+    pyshell -h (或 /?): 显示此帮助信息。
+    不带参数: 直接进入交互模式。
+""")
 
 def main():
     # 执行autoexec.py
-    try:
-        autoexecfile=os.path.split(sys.argv[0])[0]+"\\autoexec.py"
-        run_file(autoexecfile)
-    except BaseException as err:handle(err)
+    if '--no-autoexec' not in sys.argv:
+        try:
+            autoexecfile=os.path.split(sys.argv[0])[0]+"\\autoexec.py"
+            run_file(autoexecfile)
+        except BaseException:handle()
+    else:sys.argv.remove('--no-autoexec') # 便于处理其他参数
+        
 
     # 处理命令行参数
     if len(sys.argv)>1:
-        if sys.argv[1]=="-m":
-            if len(sys.argv)>=3:
-                mod=sys.argv[2]
+        if sys.argv[1]=="-i":
+            interactive=True
+            del sys.argv[1] # 便于处理其他参数
+        else:
+            interactive=False
+
+        if sys.argv[1]=="-c":
+            if len(sys.argv)>=3:# 检查有无提供代码
+                try:exec_code(sys.argv[2])
+                except BaseException:handle()
+            else:help()
+
+        elif sys.argv[1]=="-m":
+            if len(sys.argv)>=3:# 检查有无提供模块名称
+                global vars_
+                modname=sys.argv[2]
                 del sys.argv[1:3]
-                runpy._run_module_as_main(mod)
-            else:
-                print("PyShell:\n用法:pyshell -m 模块名称\n运行一个模块。")
+                try:vars_ = runpy.run_module(modname,init_globals=vars_,
+                                             run_name='__main__')
+                except BaseException:handle()
+            else:help()
+        elif sys.argv[1] in ('/?','-?','-h','--help'):
+            help()
         else:
             filename=os.path.realpath(sys.argv[1])
             run_file(filename)
-        return
+        if not interactive:return
 
-    print("PyShell v%s"%__version__)
+    print("PyShell v%s (Python %s)"%(__version__, platform.python_version()))
     if not in_pythonw():
         try:
-            import console_tool
+            import console_tool # 初始化console标题, 颜色等
             c=console_tool.Console()
             c.colorize()
             c.title(_TITLE)
             input=c.input
         except:
             c = None
-            input=__builtins__.input
-            os.system("title %s"%_TITLE) # 设置命令行窗口标题
+            input=builtins.input
+            os.system("title %s"%_TITLE)
     else:
         c=None
         input=__builtins__.input
 
-    line=1
+    lineno=1
     while True:
         try:
             if sys.stdin.closed:
@@ -102,14 +138,13 @@ def main():
             if c is not None:
                 c.title("{} - {}".format(_TITLE,code))
 
-            exec_code(code,line)
-            line+=1
+            exec_code(code,lineno)
+            lineno+=1
 
             if c is not None:
                 c.title(_TITLE)
 
         except KeyboardInterrupt:
-            msg="\n^C确实要退出吗?(Y/N) "
             if ask_for_exit(c)==0:
                 return
         except EOFError:break
