@@ -26,7 +26,7 @@ except ImportError:
 
 __author__="七分诚意 qq:3076711200"
 __email__="3416445406@qq.com"
-__version__="1.2.5"
+__version__="1.2.6"
 
 G = 8
 PLANET_SIZE=8 # 像素
@@ -158,21 +158,41 @@ class GravSys:
             planet.clear()
 
     def up(self,event=None):
+        if isinstance(self.following,SpaceCraft):
+            self.following.accelerate() # 飞船加速
+        else:self.move_u()
+    def move_u(self):
         self.key_y -= 25 / self.scale
         scr.ontimer(self.clear_scr, max(int(1000/self.fps),17))
         self.clear_removed_planets()
+
     def down(self,event=None):
+        if isinstance(self.following,SpaceCraft):
+            self.following.slow_down() # 飞船减速
+        else:self.move_u()
+    def move_d(self):
         self.key_y += 25 / self.scale
         scr.ontimer(self.clear_scr, max(int(1000/self.fps),17))
         self.clear_removed_planets()
+
     def left(self,event=None):
+        if isinstance(self.following,SpaceCraft):
+            self.following.turn_left() # 飞船左转弯
+        else:self.move_u()
+    def move_l(self):
         self.key_x += 25 / self.scale
         scr.ontimer(self.clear_scr, max(int(1000/self.fps),17))
         self.clear_removed_planets()
+
     def right(self,event=None):
+        if isinstance(self.following,SpaceCraft):
+            self.following.turn_right() # 飞船右转弯
+        else:self.move_u()
+    def move_r(self):
         self.key_x -= 25 / self.scale
         scr.ontimer(self.clear_scr, max(int(1000/self.fps),17))
         self.clear_removed_planets()
+
     def switchpen(self,x,y):
         targets=[]
         for planet in self.planets:
@@ -476,6 +496,15 @@ class SpaceCraft(Star):
             self.gravSys.removed_planets.append(self)
             self.gravSys.planets.remove(self)
             self.hideturtle()
+
+    def accelerate(self):
+        pass
+    def slow_down(self):
+        pass
+    def turn_left(self):
+        pass
+    def turn_right(self):
+        pass
 
 def main():
     global scr
