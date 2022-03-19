@@ -9,7 +9,7 @@
 单击屏幕开启或关闭轨道显示。
 单击行星即可跟随该行星。
 
-1.2.04版: 增加了拖动鼠标发射飞船功能。
+1.2.6版更新: 增加了跟踪飞船, 即可控制飞船功能。
 """
 try:
     from time import perf_counter
@@ -169,7 +169,7 @@ class GravSys:
     def down(self,event=None):
         if isinstance(self.following,SpaceCraft):
             self.following.slow_down() # 飞船减速
-        else:self.move_u()
+        else:self.move_d()
     def move_d(self):
         self.key_y += 25 / self.scale
         scr.ontimer(self.clear_scr, max(int(1000/self.fps),17))
@@ -178,7 +178,7 @@ class GravSys:
     def left(self,event=None):
         if isinstance(self.following,SpaceCraft):
             self.following.turn_left() # 飞船左转弯
-        else:self.move_u()
+        else:self.move_l()
     def move_l(self):
         self.key_x += 25 / self.scale
         scr.ontimer(self.clear_scr, max(int(1000/self.fps),17))
@@ -187,7 +187,7 @@ class GravSys:
     def right(self,event=None):
         if isinstance(self.following,SpaceCraft):
             self.following.turn_right() # 飞船右转弯
-        else:self.move_u()
+        else:self.move_r()
     def move_r(self):
         self.key_x -= 25 / self.scale
         scr.ontimer(self.clear_scr, max(int(1000/self.fps),17))
@@ -488,7 +488,10 @@ class SpaceCraft(Star):
             self.left(self.rotation*self.gravSys.dt)
         else:
             if self.gravSys.following:
-                dx=self.gravSys.following.dx;dy=self.gravSys.following.dy
+                if self.gravSys.following is self:
+                    planet=self.parent
+                else:planet=self.parent
+                dx=planet.dx;dy=planet.dy
             else:dx=dy=0
             angle = math.atan2(self.dy - dy,self.dx - dx) * 180 / math.pi + 90
             self.setheading(angle)
@@ -498,13 +501,24 @@ class SpaceCraft(Star):
             self.hideturtle()
 
     def accelerate(self):
-        pass
+        v = math.hypot(self.dx,self.dy);step = 400
+        # 加速度大小为step, 方向为飞船速度方向
+        ax = self.dx / v * step;ay = self.dy / v * step
+        self.dx+=ax*self.gravSys.dt; self.dy+=ay*self.gravSys.dt
     def slow_down(self):
-        pass
+        v = math.hypot(self.dx,self.dy);step = 400
+        # 加速度大小为step, 方向与飞船速度方向相反
+        ax = - self.dx / v * step;ay = - self.dy / v * step
+        self.dx+=ax*self.gravSys.dt; self.dy+=ay*self.gravSys.dt
     def turn_left(self):
-        pass
+        v = math.hypot(self.dx,self.dy);step = 1500
+        # 向心加速度与飞船速度方向垂直
+        ax = - self.dy / v * step;ay = self.dx / v * step
+        self.dx+=ax*self.gravSys.dt; self.dy+=ay*self.gravSys.dt
     def turn_right(self):
-        pass
+        v = math.hypot(self.dx,self.dy);step = 1500
+        ax = self.dy / v * step;ay = - self.dx / v * step
+        self.dx+=ax*self.gravSys.dt; self.dy+=ay*self.gravSys.dt
 
 def main():
     global scr
@@ -592,10 +606,10 @@ def main():
     cv.bind_all("<B1-ButtonRelease>",gs.onrelease)
     #scr.tracer(1,0)
 
+    globals().update(locals()) # 便于调试
     gs.init()
     try:gs.start()
     except (Terminator,TclError):pass
-    globals().update(locals()) # 便于调试
 
 if __name__ == '__main__':
     main()
