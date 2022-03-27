@@ -606,7 +606,7 @@ def main():
     cv.bind_all("<B1-ButtonRelease>",gs.onrelease)
     #scr.tracer(1,0)
 
-    globals().update(locals()) # 便于调试
+    globals().update(locals()) # 便于程序退出后, 在交互式提示符中调试程序
     gs.init()
     try:gs.start()
     except (Terminator,TclError):pass
