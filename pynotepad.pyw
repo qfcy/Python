@@ -1,6 +1,7 @@
-"""说明 Introduction:
+"""简介 Introduction:
 A simple text editor written in Python.It supports editing text files,
-binary files ,encodings and changing font size.
+binary files with various encodings which can be automatically detected 
+and changing font size.
 When you edit a binary file, the contents of the file are
 displayed as escape sequences.
 You can also find and replace words.
@@ -8,12 +9,13 @@ In addition, code highlighting is supported when editing Python code files,like 
 What's more, dragging and dropping files into the editor window is now supported.
 
 一款使用tkinter编写的文本编辑器, 支持编辑文本文件、二进制文件、改变字体大小。
-支持ansi、gbk、utf-8等编码。编辑二进制文件时, 文件内容以转义序列形式显示。
+支持ansi、gbk、utf-8等编码, 以及调用chardet库自动检测编码。
+编辑二进制文件时, 文件内容以转义序列形式显示。
 支持查找、替换、改变字体大小; 且支持撤销、重做; 支持将文件拖放入窗口。
 编辑python代码文件时, 支持代码高亮显示, 类似IDLE。
 
 作者:qfcy (七分诚意)
-版本:1.2.8.8
+版本:1.2.8.9
 """
 import sys,os,time,pickle
 from tkinter import *
@@ -22,7 +24,7 @@ import tkinter.ttk as ttk
 import tkinter.messagebox as msgbox
 import tkinter.filedialog as dialog
 import tkinter.simpledialog as simpledialog
-
+# 以下为可选(非必需)的模块
 try:
     from idlelib.colorizer import ColorDelegator
     from idlelib.percolator import Percolator
@@ -30,10 +32,12 @@ except ImportError:
     ColorDelegator=Percolator=None
 try:import windnd
 except ImportError:windnd=None
+try:import chardet
+except ImportError:chardet=None
 
 __email__="3416445406@qq.com"
 __author__="七分诚意 qq:3076711200 邮箱:%s"%__email__
-__version__="1.2.8.8"
+__version__="1.2.8.9"
 
 def view_hex(bytes):
     result=''
@@ -250,8 +254,10 @@ class ReplaceDialog(SearchDialog):
 class Editor(Tk):
     TITLE="PyNotepad"
     encodings="ansi","utf-8","utf-16","utf-32","gbk","big5"
+    # 判断是否有chardet库, 有就启用"自动"功能
+    if chardet is not None:encodings=("自动",)+encodings
     ICON="notepad.ico"
-    NORMAL_CODING="utf-8"
+    NORMAL_CODING="自动" if chardet is not None else "utf-8"
     FONTSIZES=8, 9, 10, 11, 12, 14, 18, 20, 22, 24, 30
     NORMAL_FONT='宋体'
     NORMAL_FONTSIZE=11
@@ -513,13 +519,21 @@ class Editor(Tk):
             try:
                 selected=self.contents.get(SEL_FIRST,SEL_LAST)
                 data=to_bytes(selected)
-                try:text=str(data,encoding=self.coding.get(),
+                coding=self.coding.get()
+                # 调用chardet库
+                if coding=="自动":
+                    coding=chardet.detect(raw[:100000])['encoding']
+                    if encoding is None:
+                        coding='utf-8'
+                try:text=str(data,encoding=coding,
                              errors="backslashreplace")
                 except TypeError:
                     # 忽略Python 3.4的bug: don't know how to handle
                     # UnicodeDecodeError in error callback
-                    text=str(data,encoding=self.coding.get(),
+                    text=str(data,encoding=coding,
                              errors="replace")
+                except LookupError as err: # 未知编码
+                    handle(err,parent=self);return
                 self.bin_data.delete("1.0",END)
                 self.bin_data.insert(INSERT,text)
                 self.charmap.delete("1.0",END)
@@ -609,7 +623,14 @@ class Editor(Tk):
         else:
             try:
                 #读取文件,并对文件内容进行编码
-                data=str(f.read(),encoding=self.coding.get())
+                raw=f.read()
+                if self.coding.get()=="自动":
+                    # 调用chardet库
+                    encoding=chardet.detect(raw[:100000])['encoding']
+                    if encoding is None:
+                        encoding='utf-8'
+                    self.coding.set(encoding)
+                data=str(raw,encoding=self.coding.get())
             except UnicodeDecodeError:
                 f.seek(0)
                 result=msgbox.askyesnocancel("PyNotepad","""%s编码无法解码此文件,
@@ -718,6 +739,9 @@ class Editor(Tk):
                     setattr(Editor,key,cfg[key])
         except OSError:
             pass
+        # bug修复:未安装chardet时编码设为"自动"的情况
+        if Editor.NORMAL_CODING=="自动" and not chardet:
+            Editor.NORMAL_CODING="utf-8"
     def saveconfig(self):
         font=self.contents['font'].split(' ')
         cfg={'NORMAL_CODING':self.coding.get(),
@@ -731,10 +755,10 @@ class Editor(Tk):
         self.after(50,self.onfiledrag2)
     def onfiledrag2(self):
         if not self.contents.get('1.0',END).strip() and not self.file_changed:
-            self.open(self.drag_files[0].decode('gbk'))
+            self.open(self.drag_files[0].decode('ansi'))
             del self.drag_files[0]
         for item in self.drag_files:
-            Editor(item.decode('gbk'))
+            Editor(item.decode('ansi'))
 
 def main():
     if len(sys.argv)>1:
