@@ -2,7 +2,6 @@ import tkinter as tk
 import tkinter.filedialog as dialog
 import time
 from PIL import Image,ImageGrab
-import numpy as np
 import imageio
 
 def select_area():
