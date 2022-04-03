@@ -10,19 +10,23 @@ def select_area():
     rectangle_id=None
     def _press(event):
         area[0],area[1]=event.x,event.y
-    def _move(event):
+    def _move_label(event,text=None):
         nonlocal tip_id,rectangle_id
+        text=text or "拖曳选择录制区域(%d, %d)"%(event.x,event.y)
         cv.delete(tip_id)
-        tip_id=cv.create_text((event.x+8,event.y),text="拖曳选择录制区域",
-                               anchor = tk.W,justify = tk.LEFT)
+        tip_id=cv.create_text((event.x+8,event.y),
+                              text=text, anchor = tk.W,justify = tk.LEFT)
     def _drag(event):
         nonlocal rectangle_id
         if rectangle_id is not None:cv.delete(rectangle_id)
         rectangle_id=cv.create_rectangle(area[0],area[1],
                                          event.x,event.y)
-        _move(event)
+        _move_label(event)
     def _release(event):
         area[2],area[3]=event.x,event.y
+        _move_label(event,"按Enter键接受, 拖曳可重新选择")
+        window.bind_all('<Key-Return>',_accept)
+    def _accept(event):
         window.destroy()
 
     window=tk.Tk()
@@ -38,9 +42,10 @@ def select_area():
     window.attributes("-topmost",True)
     window.attributes("-fullscreen",True)
     window.bind('<Button-1>',_press)
-    window.bind('<Motion>',_move)
+    window.bind('<Motion>',_move_label)
     window.bind('<B1-Motion>',_drag,)
     window.bind('<B1-ButtonRelease>',_release)
+
     while 1:
         try:
             window.update()
@@ -82,9 +87,11 @@ def main():
         count+=1
         end=time.perf_counter()
         time.sleep(max(count/fps-(end-start),0))
-        lbl_fps['text']='fps:'+str(1/(end-last))
-        last=end
-        root.update()
+        try:
+            lbl_fps['text']='fps:'+str(1/(end-last))
+            last = end
+            root.update()
+        except tk.TclError:flag=True
     videoWriter.release()
 
 if __name__=="__main__":main()
