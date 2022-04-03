@@ -4,6 +4,6 @@
 # Embedded file name: ulang\__init__.py
 from ulang.parser.core import Parser
 from ulang.runtime.main import main
-__version__ = '0.2.2.2'
+__version__ = '0.2.2.3'# 原为0.2.2.2
 __all__ = ['Parser', 'main']
 # okay decompiling E:\ulang\ulang-0.2.2.exe_extracted\PYZ-00.pyz_extracted\ulang.pyc
