@@ -3,7 +3,7 @@ import tkinter.filedialog as dialog
 import time
 from PIL import Image,ImageGrab
 import numpy as np
-import cv2
+import imageio
 
 def select_area():
     area=[0,0,0,0]
@@ -67,31 +67,27 @@ def main():
     lbl_fps=tk.Label(root,text='fps:0')
     lbl_fps.pack(fill=tk.X)
     filename=dialog.asksaveasfilename(master=root,
-                filetypes=[("avi视频","*.avi"),("所有文件","*.*")],
-                defaultextension='.avi')
+                filetypes=[("gif动画","*.gif"),("所有文件","*.*")],
+                defaultextension='.gif')
     if not filename.strip():return
 
     area=select_area()
 
     root.title('录制中')
-    fps=10;flag=False
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    videoWriter = cv2.VideoWriter(filename, fourcc, fps,
-                                  (area[2]-area[0],area[3]-area[1]))
+    fps=60;flag=False
     start=last=time.perf_counter()
-    count=0
+    lst_image=[]
     while not flag:
         image=ImageGrab.grab(area)
-        frame = cv2.cvtColor(np.asarray(image),cv2.COLOR_RGB2BGR)
-        videoWriter.write(frame)
-        count+=1
+        lst_image.append(image)
         end=time.perf_counter()
-        time.sleep(max(count/fps-(end-start),0))
+        time.sleep(max(len(lst_image)/fps-(end-start),0))
         try:
             lbl_fps['text']='fps:'+str(1/(end-last))
-            last = end
+            last=end
             root.update()
         except tk.TclError:flag=True
-    videoWriter.release()
+    imageio.mimsave(filename,lst_image,'GIF',
+                    duration=(end-start)/len(lst_image))
 
 if __name__=="__main__":main()
