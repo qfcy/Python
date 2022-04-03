@@ -141,7 +141,7 @@ class SearchDialog(Toplevel):
             text.mark_set(INSERT,newpos)
             if mark:self.mark_text(pos,newpos)
             return pos,newpos
-        elif bell: # 未找到
+        elif bell: # 未找到,返回None
             bell_(widget=self)
     def findnext(self,cursor_pos='end',mark=True):
         # cursor_pos:标记文本后将光标放在找到文本开头还是末尾
@@ -199,21 +199,22 @@ class ReplaceDialog(SearchDialog):
         options=Frame(self)
         self.create_options(options)
         options.pack(fill=X)
-    def _findnext(self):
+    def _findnext(self):# 用于"查找下一个"功能
         text=self.master.contents
         sel_range=text.tag_ranges('sel') # 获得选区的起点和终点
         if sel_range:
             selectarea = sel_range[0].string, sel_range[1].string
             result = self.findnext('start')
+            if result is None:return
             if result[0] == selectarea[0]: # 若仍停留在原位置
-                text.mark_set('insert',result[1])
+                text.mark_set('insert',result[1])# 从选区终点继续查找
                 self.findnext('start')
         else:
             self.findnext('start')
     def replace(self,bell=True,mark=True):
         text=self.master.contents
         result=self.search(mark=False,bell=bell)
-        if not result:return -1 #-1标志已无文本可替换
+        if not result:return # 标志已无文本可替换
         self.master.text_change()
         pos,newpos=result
         newtext=self.text_to_replace.get()
@@ -237,16 +238,15 @@ class ReplaceDialog(SearchDialog):
         last = (0,0)
         while True:
             result=self.replace(bell=False,mark=False)
-            if result==-1:break
+            if result is None:break
             flag = True
-            ln,col = self.findnext('start',mark=False)[0].split('.')
-            ln,col = int(ln),int(col)
+            result = self.findnext('start',mark=False)
+            if result is None:return
+            ln,col = result[0].split('.')
+            ln = int(ln);col = int(col)
             # 判断新的偏移量是增加还是减小
-            if ln < last[0]:
+            if ln < last[0] or (ln==last[0] and col<=last[1]):
                 self.mark_text(*result) # 已完成一轮替换
-                break
-            elif ln==last[0] and col<last[1]:
-                self.mark_text(*result)
                 break
             last=ln,col
         if not flag:bell_()
@@ -546,7 +546,7 @@ class Editor(Tk):
         else:self.update_offset()
     def update_offset(self,event=None):
         if self.isbinary:
-            prev=self.contents.get("1.0",INSERT)
+            prev=self.contents.get("1.0",INSERT) # 获取从开头到光标处的文本
             try:
                 data=to_bytes(prev)
             except SyntaxError:
@@ -647,7 +647,7 @@ class Editor(Tk):
             return data
     def insert_hex(self):
         hex = simpledialog.askstring('',
-                    "输入WinHex十六进制数据(如:00 1a 3d ff) :")
+                    "输入WinHex十六进制数据(如:00 1a 3d ff) :",parent=self)
         if hex is None:return
         try:
             data=bytes.fromhex(hex)
