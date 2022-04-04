@@ -40,10 +40,10 @@ def main():
         dst = normpath(input('输入目标目录: ')).strip('"').strip()
         default = '.gitignore'
         if not os.path.isfile(default):default=None
-        ignore_listfile = normpath(input('忽略的文件列表 (默认 %s): '%default)
-                                   or default).strip('"').strip()
+        inp = input('忽略的文件列表 (默认 %s): '%default) or default
 
-    if ignore_listfile is not None:ignore_list = read_ig(ignore_listfile)
+    if inp is not None:
+        ignore_list = read_ig(normpath(inp).strip('"').strip())
     else:ignore_list = []
 
     all_=False;ignore_all=False
