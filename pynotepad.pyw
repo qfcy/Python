@@ -269,7 +269,7 @@ class Editor(Tk):
     def __init__(self,filename=""):
         super().__init__()
         self.withdraw() # 暂时隐藏窗口,避免调用create_widgets()时窗口闪烁
-        self.title(self.TITLE)
+        self.title(self.TITLE) # 初始化时预先显示标题
         self.bind("<Key>",self.window_onkey)
         self.bind("<FocusIn>",self.focus)
         self.bind("<FocusOut>",self.focus)
@@ -287,6 +287,7 @@ class Editor(Tk):
         self.filename=''
         if filename:
             self.load(filename)
+        else:self.change_title() # 更改标题
     def load_icon(self):
         for path in sys.path + [os.path.split(sys.executable)[0]]: # 用于Py2exe
             try:
@@ -693,7 +694,7 @@ class Editor(Tk):
         if quit:
             Editor.windows.remove(self)
             self.saveconfig()
-            self.destroy()
+            self.destroy() # tkinter不会自动关闭窗口, 需调用函数手动关闭
         return my_ret
     def save(self):
         #保存文件
