@@ -1,6 +1,6 @@
 """简介 Introduction:
 A simple text editor written in Python.It supports editing text files,
-binary files with various encodings which can be automatically detected 
+binary files with various encodings which can be automatically detected
 and changing font size.
 When you edit a binary file, the contents of the file are
 displayed as escape sequences.
@@ -15,7 +15,7 @@ What's more, dragging and dropping files into the editor window is now supported
 编辑python代码文件时, 支持代码高亮显示, 类似IDLE。
 
 作者:qfcy (七分诚意)
-版本:1.2.8.9
+版本:%s
 """
 import sys,os,time,pickle
 from tkinter import *
@@ -25,6 +25,7 @@ import tkinter.messagebox as msgbox
 import tkinter.filedialog as dialog
 import tkinter.simpledialog as simpledialog
 # 以下为可选(非必需)的模块
+import webbrowser
 try:
     from idlelib.colorizer import ColorDelegator
     from idlelib.percolator import Percolator
@@ -37,7 +38,7 @@ except ImportError:chardet=None
 
 __email__="3416445406@qq.com"
 __author__="七分诚意 qq:3076711200 邮箱:%s"%__email__
-__version__="1.2.8.9"
+__version__="1.2.9.0";__doc__=__doc__%__version__ # 在__doc__中加入版本信息
 
 def view_hex(bytes):
     result=''
@@ -46,12 +47,13 @@ def view_hex(bytes):
         if (i+1) % 4 == 0:result+='\n'
     return result
 
-def to_escape_str(bytes):
+def to_escape_str(bytes,linesep=True):
     # 将字节(bytes)转换为转义字符串
+    # linesep: 是否以length间隔加入换行符, 加入换行符可提高Text控件的显示速度
     str='';length=1024
     for i in range(0,len(bytes),length):
         str+=repr( bytes[i: i+length] ) [2:-1]
-        str+='\n'
+        if linesep:str+='\n'
     return str
 
 def to_bytes(escape_str):
@@ -66,7 +68,7 @@ def to_bytes(escape_str):
         return eval("b'''"+escape_str+"'''")
 
 def bell_(widget=None):
-    try: 
+    try:
         import winsound
         winsound.PlaySound('.',winsound.SND_ASYNC)
     except (ImportError, RuntimeError):
@@ -156,10 +158,12 @@ class SearchDialog(Toplevel):
         return result
     def mark_text(self,start_pos,end_pos):
         text=self.master.contents
-        text.tag_remove("sel","1.0",END)
-        text.tag_add("sel", start_pos,end_pos)
+        text.tag_remove("sel","1.0",END) # 移除旧的tag
+        # 已知问题: 代码高亮显示时, 无法突出显示找到的文字
+        text.tag_add("sel", start_pos,end_pos) # 添加新的tag "sel"
         lines=text.get('1.0',END)[:-1].count(os.linesep) + 1
         lineno=int(start_pos.split('.')[0])
+        # 滚动文本框, 使被找到的内容显示
         text.yview('moveto', str((lineno-text['height'])/lines)) # -****- 1.2.5版
         text.focus_force()
         self.master.update_status()
@@ -250,7 +254,7 @@ class ReplaceDialog(SearchDialog):
                 break
             last=ln,col
         if not flag:bell_()
-     
+
 class Editor(Tk):
     TITLE="PyNotepad"
     encodings="ansi","utf-8","utf-16","utf-32","gbk","big5"
@@ -300,8 +304,10 @@ class Editor(Tk):
         self.statusbar.pack(side=BOTTOM,fill=X)
         self.status=Label(self.statusbar,justify=RIGHT)
         self.status.pack(side=RIGHT)
-        self.bin_data=ScrolledText(self.statusbar,width=6,height=6)
-        self.charmap=ScrolledText(self.statusbar,width=14,height=5)
+        self.txt_decoded=ScrolledText(self.statusbar,width=6,height=6)
+        self.txt_decoded.insert('1.0',"在这里查看和编辑解码的数据")
+        self.hexdata=ScrolledText(self.statusbar,width=14,height=5)
+        self.hexdata.insert('1.0',"在这里查看hex十六进制值")
 
         frame=Frame(self)
         frame.pack(side=TOP,fill=X)
@@ -339,16 +345,16 @@ class Editor(Tk):
         self.create_menu()
     def create_binarytools(self):
         if self.isbinary:
-            self.bin_data.pack(side=LEFT,expand=True,fill=BOTH)
-            self.charmap.pack(fill=Y)
+            self.txt_decoded.pack(side=LEFT,expand=True,fill=BOTH)
+            self.hexdata.pack(fill=Y)
             self.status.pack_forget()
             self.status.pack(fill=X)
             self.editmenu.entryconfig(8,state=NORMAL)
         else: # 隐藏工具
-            if self.bin_data:
-                self.bin_data.pack_forget()
-            if self.charmap:
-                self.charmap.pack_forget()
+            if self.txt_decoded:
+                self.txt_decoded.pack_forget()
+            if self.hexdata:
+                self.hexdata.pack_forget()
             self.status.pack(side=RIGHT)
             self.editmenu.entryconfig(8,state=DISABLED)
     def create_menu(self):
@@ -413,22 +419,36 @@ class Editor(Tk):
 
         helpmenu=Menu(self,tearoff=False)
         helpmenu.add_command(label="关于",command=self.about)
+        helpmenu.add_command(label="反馈",command=self.feedback)
 
         menu.add_cascade(label="文件",menu=filemenu)
         menu.add_cascade(label="编辑",menu=self.editmenu)
         menu.add_cascade(label="查看",menu=view)
         menu.add_cascade(label="帮助",menu=helpmenu)
 
-        popup1=Menu(self.bin_data,tearoff=False)
+        # 创建弹出在self.txt_decoded和self.hexdata的菜单
+        popup1=Menu(self.txt_decoded,tearoff=False)
+        def _cut():
+            self.txt_decoded.event_generate("<<Cut>>")
+            self._edit_decoded_event()
+        def _paste():
+            self.txt_decoded.event_generate("<<Paste>>")
+            self._edit_decoded_event()
+        popup1.add_command(label="剪切",command=_cut)
         popup1.add_command(
-            label="复制",command=lambda:self.bin_data.event_generate("<<Copy>>"))
-        popup2=Menu(self.charmap,tearoff=False)
+            label="复制",command=lambda:self.txt_decoded.event_generate("<<Copy>>"))
+        popup1.add_command(label="粘贴",command=_paste)
+
+        popup2=Menu(self.hexdata,tearoff=False)
         popup2.add_command(
-            label="复制",command=lambda:self.charmap.event_generate("<<Copy>>"))
-        self.bin_data.bind("<Button-3>",
+            label="复制",command=lambda:self.hexdata.event_generate("<<Copy>>"))
+
+        self.txt_decoded.bind("<Button-3>",
                     lambda event:popup1.post(event.x_root,event.y_root))
-        self.charmap.bind("<Button-3>",
+        self.txt_decoded.bind("<Key>",self._edit_decoded_event)
+        self.hexdata.bind("<Button-3>",
                     lambda event:popup2.post(event.x_root,event.y_root))
+
         # 显示菜单
         self.config(menu=menu)
 
@@ -519,30 +539,29 @@ class Editor(Tk):
         if self.isbinary:
             try:
                 selected=self.contents.get(SEL_FIRST,SEL_LAST)
-                data=to_bytes(selected)
+                raw=to_bytes(selected)
                 coding=self.coding.get()
                 # 调用chardet库
                 if coding=="自动":
                     coding=chardet.detect(raw[:100000])['encoding']
-                    if encoding is None:
-                        coding='utf-8'
-                try:text=str(data,encoding=coding,
+                    if coding is None:coding='utf-8'
+                try:text=str(raw,encoding=coding,
                              errors="backslashreplace")
                 except TypeError:
                     # 忽略Python 3.4的bug: don't know how to handle
                     # UnicodeDecodeError in error callback
-                    text=str(data,encoding=coding,
+                    text=str(raw,encoding=coding,
                              errors="replace")
                 except LookupError as err: # 未知编码
                     handle(err,parent=self);return
-                self.bin_data.delete("1.0",END)
-                self.bin_data.insert(INSERT,text)
-                self.charmap.delete("1.0",END)
-                self.charmap.insert(INSERT,view_hex(data))
-                self.status["text"]="选区长度: %d (Bytes)"%len(data)
+                self.txt_decoded.delete("1.0",END)
+                self.txt_decoded.insert(INSERT,text)
+                self.hexdata.delete("1.0",END)
+                self.hexdata.insert(INSERT,view_hex(raw))
+                self.status["text"]="选区长度: %d (Bytes)"%len(raw)
             except (TclError,SyntaxError): #忽略未选取内容, 或格式不正确
-                self.bin_data.delete("1.0",END)
-                self.charmap.delete("1.0",END)
+                self.txt_decoded.delete("1.0",END)
+                self.hexdata.delete("1.0",END)
                 self.update_offset()
         else:self.update_offset()
     def update_offset(self,event=None):
@@ -562,6 +581,23 @@ class Editor(Tk):
         else:
             offset=self.contents.index(CURRENT).split('.')
             self.status["text"]="Ln: {}  Col: {}".format(*offset)
+    def _edit_decoded_event(self,event=None):
+        self.after(20,self.edit_decoded) # 如果不使用after(),self.txt_decoded.get不会返回最新的值
+    def edit_decoded(self):
+        range_=self.contents.tag_ranges(SEL) # 获取选区
+        if not range_:return
+        start,end=range_[0].string,range_[1].string # 转换为字符串
+        self.contents.delete(start,end)
+        try:
+            coding=self.coding.get()
+            if coding=="自动":
+                msgbox.showinfo('','不支持自动编码, 请选择或输入其他编码');return
+            byte = self.txt_decoded.get('1.0',END)[:-1].encode(coding)
+            esc_char = to_escape_str(byte,linesep=False)
+            self.contents.insert(start,esc_char)
+            end = '%s+%dc'%(start, len(esc_char))
+            self.contents.tag_add(SEL,start,end)
+        except Exception as err:handle(err)
 
     @classmethod
     def new(cls):
@@ -705,14 +741,14 @@ class Editor(Tk):
         filename=self.filename
         if filename.strip():
             try:
-                text=self.contents.get('1.0', END)[:-1] # [:-1]: 去除换行符
+                text=self.contents.get('1.0', END)[:-1] # [:-1]: 去除末尾换行符
                 if self.isbinary:
                     data=to_bytes(text)
                 else:
                     data=bytes(text,encoding=self.coding.get(),errors='replace')
-                # Text文本框的bug:避免多余的\r换行符
-                # 如:输入文字foobar, data中变成\rfoobar
-                data=data.replace(b'\r',b'')
+                    # Text文本框的bug:避免多余的\r换行符
+                    # 如:输入文字foobar, data中变成\rfoobar
+                    data=data.replace(b'\r',b'')
                 with open(filename, 'wb') as f:
                     f.write(data)
                 self.filename=filename
@@ -732,6 +768,9 @@ class Editor(Tk):
 
     def about(self):
         msgbox.showinfo("关于",__doc__+"\n作者: "+__author__,parent=self)
+    def feedback(self):
+        webbrowser.open("https://blog.csdn.net/qfcy_/article/details/118399185")
+
     def loadconfig(self):
         try:
             with open(self.CONFIGFILE,'rb') as f:
