@@ -516,6 +516,9 @@ class Editor(Tk):
                 self.decrease_font()
         elif event.keysym.lower()=='f3':
             self.findnext()
+        elif event.keycode == 93: # 按下了菜单键
+            self.editmenu.post(self.winfo_x()+self.winfo_width(),
+                               self.winfo_y()+self.winfo_height())
     def focus(self,event):
         # 当窗口获得或失去焦点时,调用此函数, 用于使对话框置于主窗体前
         for dialog in SearchDialog.instances + ReplaceDialog.instances:
