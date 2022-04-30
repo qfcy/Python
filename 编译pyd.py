@@ -2,7 +2,8 @@ from distutils.core import setup
 from Cython.Build import cythonize
 import sys,os,traceback
 
-filename = sys.argv[1]
+filename = sys.argv[1] if len(sys.argv)==2 \
+           else input("拖曳或输入文件名: ")
 sys.argv[1:] = ['build_ext','--inplace']
 try:
     setup(
