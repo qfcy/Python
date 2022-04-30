@@ -56,13 +56,18 @@ def select_area():
 def main():
     def _stop():
         nonlocal flag
-        flag=True
+        flag=False
         btn_stop['state']=tk.DISABLED
         root.title('录制已结束')
+    def _start():
+        nonlocal flag
+        flag=True
+        btn_stop['text']='停止'
+        btn_stop['command']=_stop
 
     root=tk.Tk()
     root.title('录屏工具')
-    btn_stop=tk.Button(root,text='停止',command=_stop)
+    btn_stop=tk.Button(root,text='开始',command=_start)
     btn_stop.pack()
     lbl_fps=tk.Label(root,text='fps:0')
     lbl_fps.pack(fill=tk.X)
@@ -73,14 +78,17 @@ def main():
 
     area=select_area()
 
+    flag=False
+    while not flag: # 等待用户点击开始
+        root.update()
     root.title('录制中')
-    fps=10;flag=False
+    fps=10
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     videoWriter = cv2.VideoWriter(filename, fourcc, fps,
                                   (area[2]-area[0],area[3]-area[1]))
     start=last=time.perf_counter()
     count=0
-    while not flag:
+    while flag:
         image=ImageGrab.grab(area)
         frame = cv2.cvtColor(np.asarray(image),cv2.COLOR_RGB2BGR)
         videoWriter.write(frame)
@@ -91,7 +99,7 @@ def main():
             lbl_fps['text']='fps:'+str(1/(end-last))
             last = end
             root.update()
-        except tk.TclError:flag=True
+        except tk.TclError:flag=False # 窗口被关闭时
     videoWriter.release()
 
 if __name__=="__main__":main()

@@ -92,7 +92,7 @@ def main():
             lbl_fps['text']='fps:'+str(1/(end-last))
             last=end
             root.update()
-        except tk.TclError:flag=True
+        except tk.TclError:flag=False # 窗口被关闭时
     imageio.mimsave(filename,lst_image,'GIF',
                     duration=(end-start)/len(lst_image))
 
