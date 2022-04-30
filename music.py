@@ -56,7 +56,7 @@ duration:一个音符播放的时间
 def sinewave(times,duration=100):
     pitch=None
     for i in range(times):
-        pitch=int(math.sin(i/6.28)*600+700)
+        pitch=int(math.sin(i/math.pi/2)*600+700)
         yield pitch,duration
 
 def __demo(console=None):
