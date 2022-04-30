@@ -398,7 +398,7 @@ def main():
         for arg in sys.argv[1:]:
             try:
                 root=tk.Tk()
-                root.title(self.TITLE)
+                root.title(Painter.TITLE)
                 window=Painter(root,filename=arg)
             except FileNotFoundError:msgbox.showwarning(
                 "错误",
