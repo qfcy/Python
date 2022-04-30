@@ -55,13 +55,18 @@ def select_area():
 def main():
     def _stop():
         nonlocal flag
-        flag=True
+        flag=False
         btn_stop['state']=tk.DISABLED
         root.title('录制已结束')
+    def _start():
+        nonlocal flag
+        flag=True
+        btn_stop['text']='停止'
+        btn_stop['command']=_stop
 
     root=tk.Tk()
     root.title('录屏工具')
-    btn_stop=tk.Button(root,text='停止',command=_stop)
+    btn_stop=tk.Button(root,text='开始',command=_start)
     btn_stop.pack()
     lbl_fps=tk.Label(root,text='fps:0')
     lbl_fps.pack(fill=tk.X)
@@ -74,9 +79,11 @@ def main():
 
     root.title('录制中')
     fps=60;flag=False
+    while not flag: # 等待用户点击开始
+        root.update()
     start=last=time.perf_counter()
     lst_image=[]
-    while not flag:
+    while flag:
         image=ImageGrab.grab(area)
         lst_image.append(image)
         end=time.perf_counter()
