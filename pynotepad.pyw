@@ -24,6 +24,7 @@ import tkinter.ttk as ttk
 import tkinter.messagebox as msgbox
 import tkinter.filedialog as dialog
 import tkinter.simpledialog as simpledialog
+from tkinter import font
 # 以下为可选(非必需)的模块
 import webbrowser
 try:
@@ -38,7 +39,7 @@ except ImportError:chardet=None
 
 __email__="3416445406@qq.com"
 __author__="七分诚意 qq:3076711200 邮箱:%s"%__email__
-__version__="1.2.9.0";__doc__=__doc__%__version__ # 在__doc__中加入版本信息
+__version__="1.3.0";__doc__=__doc__%__version__ # 在__doc__中加入版本信息
 
 def view_hex(bytes):
     result=''
@@ -126,9 +127,14 @@ class SearchDialog(Toplevel):
         text=self.master.contents
         key=self.keyword.get()
         if not key:return
+        # 验证用户输入是否正常
         if self.use_escape_char.get():
             try:key=str(to_bytes(key),encoding=self.coding)
             except Exception as err:
+                handle(err,parent=self);return
+        if self.use_regexpr.get():
+            try:re.compile(key)
+            except re.error:
                 handle(err,parent=self);return
         # 默认从当前光标位置开始查找
         pos=text.search(key,INSERT,END,
@@ -139,7 +145,12 @@ class SearchDialog(Toplevel):
                         regexp=self.use_regexpr.get(),
                         nocase=not self.match_case.get())
         if pos:
-            newpos="%s+%dc"%(pos,len(key))
+            if self.use_regexpr.get(): # 获取正则表达式匹配的字符串长度
+                text_after = text.get(pos,END)
+                length = re.match(key,text_after).span()[1]
+            else:
+                length = len(key)
+            newpos="%s+%dc"%(pos,length)
             text.mark_set(INSERT,newpos)
             if mark:self.mark_text(pos,newpos)
             return pos,newpos
@@ -163,7 +174,7 @@ class SearchDialog(Toplevel):
         text.tag_add("sel", start_pos,end_pos) # 添加新的tag "sel"
         lines=text.get('1.0',END)[:-1].count(os.linesep) + 1
         lineno=int(start_pos.split('.')[0])
-        # 滚动文本框, 使被找到的内容显示
+        # 滚动文本框, 使被找到的内容显示 ( 由于只判断行数, 已知有bug)
         text.yview('moveto', str((lineno-text['height'])/lines)) # -****- 1.2.5版
         text.focus_force()
         self.master.update_status()
@@ -226,7 +237,9 @@ class ReplaceDialog(SearchDialog):
             newtext=to_bytes(newtext).decode(self.master.coding.get())
         if self.use_regexpr.get():
             old=text.get(pos,newpos)
-            newtext=re.sub(self.keyword.get(),newtext,old)
+            try:newtext=re.sub(self.keyword.get(),newtext,old)
+            except re.error as err:
+                handle(err,parent=self);return
         text.delete(pos,newpos)
         text.insert(pos,newtext)
         end_pos="%s+%dc"%(pos,len(newtext))
@@ -242,7 +255,6 @@ class ReplaceDialog(SearchDialog):
         last = (0,0)
         while True:
             result=self.replace(bell=False,mark=False)
-            print(result)
             if result is None:break
             flag = True
             result = self.findnext('start',bell=False,mark=False)
@@ -250,7 +262,7 @@ class ReplaceDialog(SearchDialog):
             ln,col = result[0].split('.')
             ln = int(ln);col = int(col)
             # 判断新的偏移量是增加还是减小
-            if ln < last[0] or (ln==last[0] and col<=last[1]):
+            if ln < last[0] or (ln==last[0] and col<last[1]):
                 self.mark_text(*result) # 已完成一轮替换
                 break
             last=ln,col
@@ -263,7 +275,7 @@ class Editor(Tk):
     if chardet is not None:encodings=("自动",)+encodings
     ICON="notepad.ico"
     NORMAL_CODING="自动" if chardet is not None else "utf-8"
-    FONTSIZES=8, 9, 10, 11, 12, 14, 18, 20, 22, 24, 30
+    FONTSIZES=8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 36, 48
     NORMAL_FONT='宋体'
     NORMAL_FONTSIZE=11
     FILETYPES=[("所有文件","*.*")]
@@ -471,24 +483,43 @@ class Editor(Tk):
             if dialog.master is self:
                 dialog.findnext()
                 return
+    def _get_fontname(self):
+        font=' '.join(self.contents["font"].split(' ')[:-2])
+        # tkinter会将带空格的字体名称用{}括起来
+        if '{' in font:
+            font = font[1:-1]
+        return font
     def set_fontsize(self,index):
         newsize=self.FONTSIZES[index]
-        fontname=self.contents["font"].split(' ')[0]
+        fontname = self._get_fontname()
         self.contents["font"]=(fontname,newsize,"normal")
     def choose_font(self):
-        oldfont=self.contents["font"].split(' ')[0]
-        font=simpledialog.askstring(
-                '', '输入字体名称: (例如: 楷体)', initialvalue = oldfont)
-        if font is not None:
-            self.contents["font"]=[font] + self.contents["font"].split(' ')[1:]
+        def ok():
+            self.contents["font"]=[opt.get()] + \
+                                   self.contents["font"].split(' ')[-2:] # 保留原先大小、样式
+            dialog.destroy()
+        dialog = Toplevel(self)
+        dialog.title('选择字体')
+        dialog.resizable(False,False)
+        dialog.attributes('-toolwindow',True)
+        opt = ttk.Combobox(dialog)
+        # tkinter.font.families() 获取所有字体名称
+        opt['values']=sorted(font.families())
+        opt.grid(row=0,column=0,columnspan=2,padx=15,pady=20)
+        ttk.Button(dialog,text='确定',command=ok).grid(row=1,column=0)
+        ttk.Button(dialog,text='取消',command=dialog.destroy).grid(row=1,column=1)
+        oldfont = self._get_fontname()
+        opt.set(oldfont)
+        dialog.grab_set() # 对话框打开时, 不允许用户操作主窗口
+        dialog.focus_force()
     def increase_font(self):
         # 增大字体
-        fontsize=int(self.contents["font"].split(' ')[1])
+        fontsize=int(self.contents["font"].split(' ')[-2]) # 使用-2代替1
         index=self.FONTSIZES.index(fontsize)+1
         if 0<=index<len(self.FONTSIZES): self.set_fontsize(index)
     def decrease_font(self):
         # 减小字体
-        fontsize=int(self.contents["font"].split(' ')[1])
+        fontsize=int(self.contents["font"].split(' ')[-2])
         index=self.FONTSIZES.index(fontsize)-1
         if 0<=index<len(self.FONTSIZES): self.set_fontsize(index)
     def set_wrap(self):
@@ -583,7 +614,7 @@ class Editor(Tk):
                 self.status["text"]="偏移量: {} ({})"\
                                      .format(len(data),hex(len(data)))
         else:
-            offset=self.contents.index(CURRENT).split('.')
+            offset=self.contents.index(INSERT).split('.') # 不能用CURRENT
             self.status["text"]="Ln: {}  Col: {}".format(*offset)
     def _edit_decoded_event(self,event=None):
         self.after(20,self.edit_decoded) # 如果不使用after(),self.txt_decoded.get不会返回最新的值
@@ -652,7 +683,7 @@ class Editor(Tk):
             self.file_changed=False
             self.change_title()
             self.change_mode()
-            self.contents.edit_reset() # -*****- 1.2.5版更新 !!!!!!!
+            self.contents.edit_reset() # -*****- 1.2.5版: 重置文本框的撤销功能
             self.contents.focus_force()
         except Exception as err:handle(err,parent=self)
     def _load_data(self,filename):
@@ -789,8 +820,8 @@ class Editor(Tk):
     def saveconfig(self):
         font=self.contents['font'].split(' ')
         cfg={'NORMAL_CODING':self.coding.get(),
-             'NORMAL_FONT': font[0],
-             'NORMAL_FONTSIZE': int(font[1]),
+             'NORMAL_FONT': self._get_fontname(),
+             'NORMAL_FONTSIZE': int(font[-2]),
              'AUTOWRAP': self.contents['wrap']}
         with open(self.CONFIGFILE,'wb') as f:
             pickle.dump(cfg,f)
