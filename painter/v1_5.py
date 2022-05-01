@@ -11,7 +11,7 @@ try:
     from PIL import ImageGrab
 except:ImageGrab=None
 
-_ver="1.4.1"
+_ver="1.5"
 __email__="3416445406@qq.com"
 __author__="七分诚意 qq:3076711200 邮箱:%s"%__email__
 
@@ -70,40 +70,31 @@ class ScrolledCanvas(tk.Canvas):
 class DictFile(dict):
     def __init__(self,filename=None,mode='r',
                  encoding="utf-8",errors="strict",
-                 error_callback=None,toolarge_callback=None,max_size=100000):
-        self.closed=False
+                 error_callback=None):
         dict.__init__(self)
         self.filename=filename
         if not filename:return
-        self.file=open(filename,mode,encoding=encoding,errors=errors)
-        if os.path.getsize(filename)>max_size:
-            if callable(toolarge_callback):toolarge_callback(len(texts[1]))
-        while True:
-            try:
-                texts=self.file.readline().split(":")
-                if not texts[0]:break
-                if len(texts)>1:
-                    self[texts[0]]=eval(texts[1],self)
-            except Exception as err:
-                if error_callback:error_callback(err)
-                else:raise
-        self.file.close()
-    def save(self,filename=None,writeall=False,error_callback=None):
+        with open(filename,mode,encoding=encoding,errors=errors) as f:
+            while True:
+                try:
+                    texts=f.readline().split(":")
+                    if not texts[0]:break # 到文件结尾
+                    if len(texts)>1:
+                        self[texts[0]]=eval(texts[1],self)
+                except Exception as err:
+                    if error_callback:error_callback(err)
+                    else:raise
+    def save(self,filename=None,error_callback=None):
         if not filename:
             if not self.filename:return
             filename=self.filename
         try:
-            self.file=open(filename,'w',encoding="utf_8")
-            for key in self.keys():
-                if writeall or (not key.startswith("__")):
-                    self.file.write("{}:{}\n".format(key,repr(self[key])))
+            with open(filename,'w',encoding="utf_8") as f:
+                for key in self.keys():
+                    f.write("{}:{}\n".format(key,repr(self[key])))
         except Exception as err:
             if error_callback:error_callback(err)
             else:raise
-        finally:self.file.close()
-    def close(self):
-        self.save()
-        self.closed=True
 
     def __iter__(self):
         return (key for key in dict.keys(self) if not key.startswith("__"))
@@ -116,36 +107,39 @@ class DictFile(dict):
             new[key]=dict[key]
         return new
 
-class PropertyWindow(tk.Tk):
+class PropertyWindow(tk.Toplevel):
     #文档属性窗口
-    instances=[]
     def __init__(self,master):
+        self.master_=master
+        self.master=master.master
         self.init_window()
-        self.master=master
-        PropertyWindow.instances.append(self)
-        self.create_widgets()
     def init_window(self):
-        tk.Tk.__init__(self)
+        tk.Toplevel.__init__(self)
         self.title("文档属性")
+        self.withdraw()
         _load_icon(self,filename="property.ico")
         self.focus_force()
         #self.resizable(width=False,height=False)
+        # 当⽗窗⼝隐藏后，窗⼝也跟随⽗窗⼝隐藏
+        self.transient(self.master)
+        self.bind_all("<Key-Return>",self.confirm)
         self.bind("<Destroy>",
-                  lambda event:PropertyWindow.instances.remove(self)
-                  if self in PropertyWindow.instances else None)
+                  lambda event:setattr(self.master_,'propertywindow',None))
+        self.create_widgets()
+        self.state('normal')
     def create_widgets(self):
         #创建控件
         size=tk.Frame(self)
         tk.Label(size,text="宽度(像素):").pack(side=tk.LEFT)
         self.width=tk.StringVar(self)
-        bd=int(self.master.cv["bd"]) or 2 #画布的边框宽度
-        self.width.set(self.master.data.get("width",
-                                    self.master.cv.winfo_width()-bd*2))
+        bd=int(self.master_.cv["bd"]) or 2 #画布的边框宽度
+        self.width.set(self.master_.data.get("width",
+                                    self.master_.cv.winfo_width()-bd*2))
         ttk.Entry(size,textvariable=self.width,width=10).pack(side=tk.LEFT)
         tk.Label(size,text="高度(像素):").pack(side=tk.LEFT)
         self.height=tk.StringVar(self)
-        self.height.set(self.master.data.get("height",
-                                             self.master.cv.winfo_height()-bd*2))
+        self.height.set(self.master_.data.get("height",
+                                             self.master_.cv.winfo_height()-bd*2))
         ttk.Entry(size,textvariable=self.height,width=10).pack(side=tk.LEFT)
         size.pack(fill=tk.X,pady=2)
 
@@ -153,7 +147,7 @@ class PropertyWindow(tk.Tk):
         backcolor=tk.Frame(self)
         tk.Label(backcolor,text="背景颜色:").pack(side=tk.LEFT)
         self.backcolor=tk.StringVar(self)
-        self.backcolor.set(self.master.data.get("backcolor",''))
+        self.backcolor.set(self.master_.data.get("backcolor",''))
         ttk.Entry(backcolor,textvariable=self.backcolor).pack(side=tk.LEFT)
         ttk.Button(backcolor,text="...",width=2,
                    command=lambda:self.backcolor.set(
@@ -163,7 +157,7 @@ class PropertyWindow(tk.Tk):
         strokecolor=tk.Frame(self)
         tk.Label(strokecolor,text="画笔颜色:").pack(side=tk.LEFT)
         self.strokecolor=tk.StringVar(self)
-        self.strokecolor.set(self.master.data.get("strokecolor",''))
+        self.strokecolor.set(self.master_.data.get("strokecolor",''))
         ttk.Entry(strokecolor,textvariable=self.strokecolor).pack(side=tk.LEFT)
         ttk.Button(strokecolor,text="...",width=2,
                    command=lambda:self.strokecolor.set(
@@ -173,9 +167,8 @@ class PropertyWindow(tk.Tk):
         pensize=tk.Frame(self)
         tk.Label(pensize,text="画笔粗细(像素): ").pack(side=tk.LEFT)
         self.pensize=ttk.Spinbox(pensize,from_=1,to=1000,width=16)
-        self.pensize.set(self.master.data.get("pensize",1))
+        self.pensize.set(self.master_.data.get("pensize",1))
         self.pensize.pack(side=tk.LEFT)
-        self.pensize.bind("<Key-Return>",self.confirm)
         pensize.pack(fill=tk.X,pady=2)
 
         self.setdefault=tk.IntVar(self)
@@ -195,13 +188,13 @@ class PropertyWindow(tk.Tk):
         newproperty["backcolor"]=self.backcolor.get()
         newproperty["strokecolor"]=self.strokecolor.get()
         newproperty["pensize"]=int(self.pensize.get())
-        self.master.data.update(newproperty)
-        self.master.draw()
-        self.master.file_changed=True
+        self.master_.data.update(newproperty)
+        self.master_.draw()
+        self.master_.file_changed=True
 
         if self.setdefault.get():
-            self.master.config.update(newproperty)
-            self.master.config.save()
+            self.master_.config.update(newproperty)
+            self.master_.config.save()
         self.destroy()
 
 class Painter():
@@ -209,8 +202,7 @@ class Painter():
     TITLE="画板 v"+_ver
     CONFIGFILE=os.getenv("userprofile")+"\.painter\config.cfg"
     #CONFIG:包含默认的工具栏位置,背景颜色,画笔颜色,画笔粗细
-    CONFIG={"toolbar":"bottom","backcolor":"white",
-            "strokecolor":"black","pensize":1}
+    CONFIG={"backcolor":"white","strokecolor":"black","pensize":1}
     FILETYPE=("vec矢量图文件 (*.vec)","*.vec")
     _FILETYPES=(FILETYPE,("pickle文件 (*.pkl;*.pickle)","*.pkl;*.pickle"),
                 ("所有文件","*.*"))
@@ -228,10 +220,9 @@ class Painter():
         self.master.focus_force()
         _load_icon(self.master,filename="paint.ico")
         self.master.bind("<Key>",self.onkey)
-        self.master.bind("<FocusIn>",self.focus)
-        self.master.bind("<FocusOut>",self.focus)
         self.master.protocol("WM_DELETE_WINDOW",self.ask_for_save)
         self.file_changed=False
+        self.propertywindow=None
         self.filename=filename
         Painter.instances.append(self)
         self.load_config()
@@ -312,7 +303,6 @@ class Painter():
         self.toolbar.pack(
             side=self.config.get("toolbar",tk.BOTTOM),fill=tk.X)
         self.create_toolbutton(self.toolbar)
-        self.toolbar_bind()
     def create_toolbutton(self,master):
         #创建工具栏按钮
         self.newbtn=ttk.Button(master,width=4,text="新建",command=self.new)
@@ -326,27 +316,7 @@ class Painter():
         self.propertybtn=ttk.Button(master,width=8,text="文档属性",
                                     command=self.show_property_window)
         self.propertybtn.pack(side=tk.RIGHT)
-    def toolbar_bind(self):
-        self.toolbar.bind("<Button-1>",self.toolbar_mousedown)
-        self.toolbar.bind("<B1-Motion>",self.move_toolbar)
-        self.toolbar.bind("<B1-ButtonRelease>",self.toolbar_mouseup)
-    def toolbar_mousedown(self,event):
-        self.toolbar.config(bg="#cfd7e2",cursor="fleur")
-    def move_toolbar(self,event):
-        #移动工具栏
-        if event.y<-int(self.cv.winfo_height()-20):#置于窗口上方
-            self.cv.forget();self.toolbar.forget()
-            self.toolbar.pack(side=tk.TOP,fill=tk.X)
-            self.cv.pack(side=tk.TOP,expand=True,fill=tk.BOTH)
-            self.config["toolbar"]=tk.TOP
-        elif event.y>int(self.cv.winfo_height()-20):#置于窗口下方
-            self.cv.forget();self.toolbar.forget()
-            self.toolbar.pack(side=tk.BOTTOM,fill=tk.X)
-            self.cv.pack(side=tk.BOTTOM,expand=True,fill=tk.BOTH)
-            self.config["toolbar"]=tk.BOTTOM
-    def toolbar_mouseup(self,event):
-        self.toolbar.config(bg="gray92",cursor="arrow")
-
+# ------------------------Painter最核心的方法------------------------
     def mousedown(self,event):
         data=self.data["data"]
         data.append([])#开始新的一根线
@@ -369,6 +339,9 @@ class Painter():
             if len(self.data["data"][-1])<=1:
                 del self.data["data"][-1]
         except IndexError:pass
+    def _clearcanvas(self):
+        #清除画布
+        self.cv.delete("all")
     def draw(self,data=None):
         #根据self.data的内容绘制图形
         if not data:data=self.data
@@ -400,6 +373,14 @@ class Painter():
             self.master.bell()
             self.editmenu.entryconfig(0,
                     state=(tk.NORMAL if self.data["data"] else tk.DISABLED))
+    def clear(self):
+        if not self.data["data"]:return
+        if msgbox.askyesno("提示","是否清除?",parent=self.master):
+            self._clearcanvas()
+            self.data["data"]=[]
+            self.file_changed=True
+            self.editmenu.entryconfig(0,state=tk.DISABLED)
+# ------------------------------------------------------------------------
     def onkey(self,event):
         if event.state in (4,6,12,14,36,38,44,46): # 适应多种按键情况(Num,Caps,Scroll)
             if event.keysym=='z':#如果按下Ctrl+Z键
@@ -418,10 +399,10 @@ class Painter():
         config=deepcopy(self.CONFIG)
         config.update(self.config)
         self.config=DictFile.fromdict(config,filename=conffile)
+
         data=deepcopy(self.config)
         data.update(self.data)
         self.data=DictFile.fromdict(data,filename=self.filename)
-        del self.data["toolbar"]
     
     @classmethod
     def new(cls):
@@ -438,9 +419,6 @@ class Painter():
             self._clearcanvas()
             self.openfile(filename)
     def openfile(self,filename):
-        def toolarge(size):
-            self.master.title("%s - 加载中,请耐心等待..." % self.TITLE)
-            self.master.update()
         try:
             self.filename=filename
             if filename.endswith(".pkl") or filename.endswith(".pickle"):
@@ -455,14 +433,13 @@ class Painter():
                         onerror(TypeError("未知数据类型: %r"%type(obj)),
                                 parent=self.master);return
             else:
-                self.data=DictFile(filename,toolarge_callback=toolarge,
-                                   error_callback=onerror)
+                self.data=DictFile(filename,error_callback=onerror)
             self.setdefault()
             self.draw()
             self.master.title("%s - %s" %(self.TITLE,self.filename))
-            self.editmenu.entryconfig(0,
+            self.editmenu.entryconfig(0, # 撤销
                         state=(tk.NORMAL if self.data["data"] else tk.DISABLED))
-        except Exception as err:onerror(err,msg="无法加载图像: ",
+        except Exception as err:onerror(err,msg="无法加载图像: "+str(err),
                                         parent=self.master)
 
     def ask_for_save(self,quit=True):
@@ -517,41 +494,14 @@ class Painter():
         if filename:
             self.save(filename)
             self.filename=filename
-    def _clearcanvas(self):
-        #清除画布
-        self.cv.delete("all")
-    def clear(self):
-        if not self.data["data"]:return
-        if msgbox.askyesno("提示","是否清除?",parent=self.master):
-            self._clearcanvas()
-            self.data["data"]=[]
-            self.file_changed=True
-            self.editmenu.entryconfig(0,state=tk.DISABLED)
     def show_property_window(self):
-        for window in PropertyWindow.instances:
-            if window.master is self:
-                window.focus_force()
-                return
-        PropertyWindow(self)
-    def focus(self,event):
-        #当窗口获得或失去焦点时,调用此函数
-        for window in PropertyWindow.instances:
-            if window.master is self:
-                if event.type==tk.EventType.FocusIn:
-                    if window.wm_state()=="iconic":
-                        window.deiconify()
-                    window.focus_force()
-                else:
-                    if self.master.wm_state()=="iconic":
-                        window.iconify()
-                break
+        if self.propertywindow is not None:
+            self.propertywindow.focus_force()
+        else:
+            self.propertywindow=PropertyWindow(self)
     def quit(self):
-        for window in PropertyWindow.instances:
-            if window.master is self:
-                window.destroy()
-                break
         Painter.instances.remove(self)
-        self.config.close()
+        self.config.save()
         self.master.destroy()
 
     def about(self):
