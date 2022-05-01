@@ -53,7 +53,8 @@ def move(x,y):
     """模拟移动鼠标。
 与goto不同,move()*产生*一个鼠标事件。"""
     goto(x,y)
-    user32.mouse_event(MOUSEEVENTF_MOVE,x,y,0,0)
+    # 不可以使用 user32.mouse_event(MOUSEEVENTF_MOVE,x,y,0,0)
+    user32.mouse_event(MOUSEEVENTF_MOVE,0,0,0,0)
 
 def click(delay=0):
     "模拟鼠标左键单击"

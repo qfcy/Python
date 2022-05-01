@@ -111,7 +111,7 @@ keybd_event=windll.user32.keybd_event
 
 def __convert(keycode_or_keyname):
     #将按键名称转换为键码值
-    if type(keycode_or_keyname) is str:
+    if isinstance(keycode_or_keyname,str):
         keyname=keycode_or_keyname.lower().replace(' ','_')
         if keyname in VK_CODE:
             return VK_CODE[keyname]
