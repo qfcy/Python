@@ -145,11 +145,11 @@ class SearchDialog(Toplevel):
             return pos,newpos
         elif bell: # 未找到,返回None
             bell_(widget=self)
-    def findnext(self,cursor_pos='end',mark=True):
+    def findnext(self,cursor_pos='end',mark=True,bell=True):
         # cursor_pos:标记文本后将光标放在找到文本开头还是末尾
         # 因为search()默认从当前光标位置开始查找
         # end 用于查找下一个操作, start 用于替换操作
-        result=self.search(mark=mark)
+        result=self.search(mark=mark,bell=bell)
         if not result:return
         if cursor_pos=='end':
             self.master.contents.mark_set('insert',result[1])
@@ -203,7 +203,7 @@ class ReplaceDialog(SearchDialog):
         options=Frame(self)
         self.create_options(options)
         options.pack(fill=X)
-    def _findnext(self):# 用于"查找下一个"功能
+    def _findnext(self):# 仅用于"查找下一个"按钮功能
         text=self.master.contents
         sel_range=text.tag_ranges('sel') # 获得选区的起点和终点
         if sel_range:
@@ -242,9 +242,10 @@ class ReplaceDialog(SearchDialog):
         last = (0,0)
         while True:
             result=self.replace(bell=False,mark=False)
+            print(result)
             if result is None:break
             flag = True
-            result = self.findnext('start',mark=False)
+            result = self.findnext('start',bell=False,mark=False)
             if result is None:return
             ln,col = result[0].split('.')
             ln = int(ln);col = int(col)
