@@ -17,12 +17,14 @@ def draw_geometry():
     #glVertex2f(-5, 5)
     #glVertex2f(-5, 2)
 
-    glColor3f(1,0,0)
+    glColor3f(5,5,5)
     glVertex3f(-5,-5,0.0)
     glColor3f(0, 5, 0)
-    glVertex3f(1, -5, 0)
+    glVertex3f(0, -5, 0)
     glColor3f(0, 0, 5)
     glVertex3f(0, 5, 0)
+    glColor3f(0, 3, 2)
+    glVertex3f(0, 10, 5)
 
     glEnd()
     glFlush()  # 执行绘图
