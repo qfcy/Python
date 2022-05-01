@@ -2,7 +2,16 @@ import time,sys
 import pyWinhook as pyHook
 import pythoncom
 
+def timer():
+    global last_time
+    # 0.001秒: 用于补偿调用API函数消耗的时间
+    tm=time.perf_counter()-last_time-0.001
+    if tm > 0:
+        print('time.sleep(%f)'%tm)
+    last_time = time.perf_counter()
+
 def left_down(event):
+    timer()
     print('mouse.leftdown()')
     sys.stdout.flush()
     # return True to pass the event to other handlers
@@ -10,48 +19,57 @@ def left_down(event):
     return True
 
 def middle_down(event):
+    timer()
     print('mouse.middledown()')
     sys.stdout.flush()
     return True
 def right_down(event):
+    timer()
     print('mouse.rightdown()')
     sys.stdout.flush()
     return True
 
 def left_up(event):
+    timer()
     print('mouse.leftup()')
     sys.stdout.flush()
     return True
 def middle_up(event):
+    timer()
     print('mouse.middleup()')
     sys.stdout.flush()
     return True
 def right_up(event):
+    timer()
     print('mouse.rightup()')
     sys.stdout.flush()
     return True
 
 def mouse_move(event):
+    timer()
     print('mouse.move(%d, %d)'%event.Position)
     sys.stdout.flush()
     return True
 
 def mouse_wheel(event):
+    timer()
     print('mouse.wheel(%d*mouse.WHEEL_DELTA)'%event.Wheel)
     sys.stdout.flush()
     return True
 
 def key_down(event):
-    print('key.down(%d)'%event.ascii)
+    timer()
+    print('key.down(%d)'%event.Ascii)
     sys.stdout.flush()
     return True
 def key_up(event):
-    print('key.up(%d)'%event.ascii)
+    timer()
+    print('key.up(%d)'%event.Ascii)
     sys.stdout.flush()
     return True
 
 def main():
-    global hm
+    global last_time,hm
     sys.stdout=open('event.py','w',encoding='utf-8')
     # create the hook mananger
     hm = pyHook.HookManager()
@@ -70,7 +88,9 @@ def main():
     # hook into the mouse and keyboard events
     hm.HookMouse()
     hm.HookKeyboard()
-    print('from event import key,mouse')
+    print("""from event import key,mouse
+import time""")
+    last_time = time.perf_counter()
     pythoncom.PumpMessages()
 
 if __name__ == '__main__':main()
