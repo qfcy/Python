@@ -33,6 +33,7 @@ def guess():
     value = 56
     def func(x):
         return x - value
+    # 在0-100范围内, func(x)=100, 求x
     print(getvalue(func,0,0,100))
 
 guess()
