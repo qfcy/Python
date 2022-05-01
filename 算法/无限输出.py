@@ -1,13 +1,13 @@
-﻿import sys
+import sys
 from random import randrange
 
-def print(quiet=False,max=55296):
+def print(quiet=False,max=55296,file=sys.stdout):
     str=""
-    for n in range(100):
+    for n in range(50):
         #每次输出一行
         char=chr(randrange(0,max))
         if not char=='\x07' or not quiet:str+=char
-    sys.stdout.write(str)
+    file.write(str)
 def print_asciis(quiet=True):
     print(quiet=quiet,max=128)
 def main():

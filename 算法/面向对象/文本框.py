@@ -1,34 +1,37 @@
-﻿import sys,traceback
+import sys,traceback
 from tkinter import *
 from tkinter.scrolledtext import ScrolledText
 
 _old_stdout=sys.stdout
 _old_stderr=sys.stderr
 class Textbox(ScrolledText):
-    def __init__(self,mode="out",autoflush=True):
+    def __init__(self):
         self.root=Tk()
-        self.root.title("%s  (mode=%s)" %(type(self).__name__,mode))
+        self.root.title(type(self).__name__)
         super().__init__(self.root)
         self.pack(fill=BOTH)
         self.tag_add("out",'0.0')
         self.tag_configure("out",foreground="blue")
         self.tag_add("err",'0.0')
         self.tag_config("err",foreground="red")
-        self.text=""
+
+class Writer:
+    def __init__(self,text,mode="out",autoflush=True):
+        self.text=text
         self.mode=mode
         self.autoflush=autoflush
     def write(self,string):
-        self.insert(END,string,self.mode)
-        self.mark_set("insert",END)
+        self.text.insert(END,string,self.mode)
+        self.text.mark_set("insert",END)
         if self.autoflush:self.flush()
     def flush(self):
-        self.root.update()
-    def read(self):
-        return self.get("1.0",END)[0:-1]
+        self.text.root.update()
+        self.text.yview('moveto',1)
 
 def init(autoflush=True):
-    sys.stdout=Textbox("out",autoflush)
-    sys.stderr=Textbox("err",autoflush)
+    text=Textbox()
+    sys.stdout=Writer(text,'out',autoflush)
+    sys.stderr=Writer(text,'err',autoflush)
 
 def reset():
     sys.stdout=_old_stdout
@@ -36,21 +39,23 @@ def reset():
 
 def test():
     import time
-    try:import 算法.无限输出 as 无限输出
-    except:无限输出=None
 
     init()
     for i in range(15):
         print("Hello world!")
         time.sleep(0.01)
     time.sleep(0.4)
-    if 无限输出:
-        try:
-            while True:
-                无限输出.print()
-                print()
-        except:
-            traceback.print_exc() 
-    sys.stderr.root.mainloop()
+    from random import randrange
+    try:
+        while True:
+            str=""
+            for n in range(50):
+                #每次输出一行
+                char=chr(randrange(0,55296))
+                str+=char
+            print(str,file=sys.stderr)
+    except:
+        traceback.print_exc() 
+    sys.stderr.text.root.mainloop()
 
 if __name__=="__main__":test()
