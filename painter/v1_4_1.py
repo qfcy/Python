@@ -1,4 +1,4 @@
-﻿"""使用tkinter的Canvas控件制作的画板程序, 支持新建、打开、编辑和保存文档。
+"""使用tkinter的Canvas控件制作的画板程序, 支持新建、打开、编辑和保存文档。
 A painter that made by tkinter in Python.It supports new, open, edit and save documents."""
 import sys,os, pickle,json
 import tkinter as tk
@@ -485,6 +485,7 @@ class Painter():
             self.filename=filename
         try: # 设置边框宽度
             bd=int(self.cv["bd"]) or 2
+            # 文档大小为画布的大小
             self.data["width"]=int(self.cv.winfo_width())-bd*2
             self.data["height"]=int(self.cv.winfo_height())-bd*2
         except tk.TclError:pass
