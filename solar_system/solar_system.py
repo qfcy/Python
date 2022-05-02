@@ -214,7 +214,7 @@ class GravSys:
 
         if targets:self.follow(max(targets,key=lambda p:p.m))
         self.clear_removed_planets()
-    def clear_removed_planets(self):
+    def clear_removed_planets(self): # 清除已移除天体留下的轨道
         for planet in self.removed_planets:
             planet.clear()
         self.removed_planets=[]
@@ -252,7 +252,7 @@ class GravSys:
         config = {}
         for key in keys:
             config[key]=getattr(self,key)
-        if self.following:
+        if self.following and self.following in self.planets:
             config["following_index"]=self.planets.index(self.following)
         else:
             config["following_index"]=None
@@ -340,10 +340,10 @@ class Star(Turtle):
             self.left(self.rotation*self.gravSys.dt)
         elif self.sun:
             self.setheading(self.towards(self.sun))
-        #if abs(self.x)>14000 or abs(self.y)>14000:
-        #    self.gravSys.removed_planets.append(self)
-        #    self.gravSys.planets.remove(self)
-        #    self.hideturtle()
+        if abs(self.x)>14000 or abs(self.y)>14000:
+            self.gravSys.removed_planets.append(self)
+            self.gravSys.planets.remove(self)
+            self.hideturtle()
     def getsize(self): # 返回行星的显示大小
         return self._stretchfactor[0]*PLANET_SIZE*2
     def distance(self,other):
@@ -537,10 +537,10 @@ class SpaceCraft(Star):
             else:dx=dy=0
             angle = math.atan2(self.dy - dy,self.dx - dx) * 180 / math.pi + 90
             self.setheading(angle)
-        if abs(self.x)>14000 or abs(self.y)>14000:
-            self.gravSys.removed_planets.append(self)
-            self.gravSys.planets.remove(self)
-            self.hideturtle()
+        #if abs(self.x)>14000 or abs(self.y)>14000:
+        #    self.gravSys.removed_planets.append(self)
+        #    self.gravSys.planets.remove(self)
+        #    self.hideturtle()
 
     def accelerate(self):
         v = math.hypot(self.dx,self.dy);step = 400
