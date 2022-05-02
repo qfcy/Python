@@ -40,7 +40,7 @@ EARTH_MASS=4000
 MOON_MASS=30
 MARS_MASS=600
 PHOBOS_MASS=2
-AST_MASS=10000
+AST_MASS=14000
 
 JUPITER_MASS=7000
 SATURN_MASS=6000
@@ -60,7 +60,7 @@ class GravSys:
         self.planets = []
         self.removed_planets=[]
         self.t = 0
-        self.dt = 0.0004 # 速度
+        self.dt = 0.0008 # 速度
         #speed: 程序在绘制一帧之前执行计算的次数
         self.speed=15
         self.scale=1
@@ -323,7 +323,6 @@ class Star(Turtle):
         if r is None:
             dx=other.x-self.x; dy=other.y-self.y
             r = math.hypot(dx,dy)
-        if other is self.sun:print(self.m,other.m,r)
         return G * self.m * other.m / r**2
     def tide(self,other,radius=None):
         # 计算行星受到的的潮汐力
@@ -343,7 +342,12 @@ class Star(Turtle):
                 p.pendown()
             else:p.penup()
         #self.keep_on_scr=arg
-
+    def getOrbitSpeed(self,r=None,other=None):
+        # 获取某一半径的圆轨道上天体的速率
+        # 引力=向心力=m * v**2 / r
+        other=other or self.sun
+        r=r or self.distance(other)
+        return math.sqrt(self.grav(other,r) * r / self.m)
     @classmethod
     def _init_shape(cls,QUALITY=32):
         if cls._light and cls._dark and cls._circle:return # 已经初始化
@@ -530,22 +534,31 @@ def main():
     # setup gravitational system
     gs = GravSys()
     sun = Sun(gs,"太阳",SUN_MASS, (0,0), (0,0),
-              2.3,has_orbit=False,shape=('yellow',))
+              1.5,has_orbit=False,shape=('yellow',))
     sun.penup()
 
     # 创建小行星
-    for i in range(20):
+    for i in range(12):
         ast=RoundStar(gs,"小行星%d"%i, AST_MASS,(0,0),(0,0),1)
         ast.setheading(randrange(360))
-        ast.forward(randrange(150,200))#randrange(700,800))
+        ast.forward(randrange(50,150))#randrange(700,800))
         ast.x,ast.y=ast.pos()
-        ast.dx,ast.dy = -ast.pos()[1]*1.2, ast.pos()[0]*1.2
+        v = ast.getOrbitSpeed()
+        vector = ast.pos().rotate(90) # 轨道方向为逆时针
+        ast.dx,ast.dy = v*vector[0]/abs(vector), v*vector[1]/abs(vector)
         ast.color("green")
-##    a1=RoundStar(gs,"小行星1", AST_MASS,(160,140),(-150,150),1)
-##    a2=RoundStar(gs,"小行星2", AST_MASS,(150,150),(-150,150),1)
-##    a3=RoundStar(gs,"小行星3", AST_MASS,(170,130),(-150,150),1)
-##    core=RoundStar(gs,"核", AST_MASS*1,(30,0),(0,0),1.5)
-##    core.color('brown')
+    for i in range(18):
+        ast=RoundStar(gs,"小行星%d"%i, AST_MASS,(0,0),(0,0),1)
+        ast.setheading(randrange(360))
+        ast.forward(randrange(500,600))#randrange(700,800))
+        ast.x,ast.y=ast.pos()
+        v = ast.getOrbitSpeed()
+        vector = ast.pos().rotate(90) # 轨道方向为逆时针
+        ast.dx,ast.dy = v*vector[0]/abs(vector), v*vector[1]/abs(vector)
+        ast.color("green")
+#     a1=RoundStar(gs,"小行星1", AST_MASS,(160,140),(-150,150),1)
+#     a2=RoundStar(gs,"小行星2", AST_MASS,(150,150),(-150,150),1)
+#     a3=RoundStar(gs,"小行星3", AST_MASS,(170,130),(-150,150),1)
     # 绑定键盘事件
     cv=scr.getcanvas()
     cv.bind_all("<Key-Up>",gs.up)
