@@ -622,13 +622,14 @@ class Editor(Tk):
         range_=self.contents.tag_ranges(SEL) # 获取选区
         if not range_:return
         start,end=range_[0].string,range_[1].string # 转换为字符串
-        self.contents.delete(start,end)
         try:
             coding=self.coding.get()
             if coding=="自动":
                 msgbox.showinfo('','不支持自动编码, 请选择或输入其他编码');return
             byte = self.txt_decoded.get('1.0',END)[:-1].encode(coding)
             esc_char = to_escape_str(byte,linesep=False)
+            self.file_changed=True;self.change_title()
+            self.contents.delete(start,end)
             self.contents.insert(start,esc_char)
             end = '%s+%dc'%(start, len(esc_char))
             self.contents.tag_add(SEL,start,end)
