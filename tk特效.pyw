@@ -19,4 +19,4 @@ x,y=250,200
 root.geometry('%dx%d+%d+%d'%(pic.width,pic.height,x,y))
 cv.create_image(0,0,image=imtk,anchor=tk.NW)
 
-window.mainloop()
+root.mainloop()
