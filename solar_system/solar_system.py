@@ -16,9 +16,10 @@ try:
 # 兼容 Python 2 与 Python 3
 except ImportError:from time import clock as perf_counter
 from random import randrange
-import math,turtle
+import math,turtle,pickle,os,sys
+sys.path.append('e:\\python')
 from turtle import *
-
+from pyobject import browse
 try:
     from tkinter import TclError
 except ImportError:
@@ -26,7 +27,7 @@ except ImportError:
 
 __author__="七分诚意 qq:3076711200"
 __email__="3416445406@qq.com"
-__version__="1.2.6"
+__version__="1.3"
 
 G = 8
 PLANET_SIZE=8 # 像素
@@ -137,6 +138,13 @@ class GravSys:
         self.dt+=0.0004
     def decrease_speed(self,event):
         self.dt-=0.0004
+    def _update_size(self):
+        for planet in self.planets:
+            scale=planet._size*self.scale
+            if planet.keep_on_scr or self.following is planet:
+                planet.shapesize(max(0.08,scale))
+            else:
+                planet.shapesize(scale)
     def zoom(self,event):
         if event.keysym=="equal":
             # 放大
@@ -144,12 +152,7 @@ class GravSys:
         else:
             # 缩小
             self.scale/=1.33
-        for planet in self.planets:
-            scale=planet._size*self.scale
-            if planet.keep_on_scr or self.following is planet:
-                planet.shapesize(max(0.08,scale))
-            else:
-                planet.shapesize(scale)
+        self._update_size()
         scr.ontimer(self.clear_scr, max(int(1000/self.fps),17))
         self.clear_removed_planets()
 
@@ -239,6 +242,32 @@ class GravSys:
 
         craft=SpaceCraft(self,SPACECRAFT_MASS,x_,v,parent=self.following)
         craft.penup()
+    def __new__(cls): # 避免pickle中引发AttributeError
+        o=super().__new__(cls)
+        o.__init__()
+        return o
+    def __getstate__(self):
+        keys = ['planets',  't', 'dt', 'speed','scale', 'scr_x', 'scr_y',
+               'key_x', 'key_y','show_tip']
+        config = {}
+        for key in keys:
+            config[key]=getattr(self,key)
+        if self.following:
+            config["following_index"]=self.planets.index(self.following)
+        else:
+            config["following_index"]=None
+        return self.planets, config
+    def __setstate__(self,state):
+        self.planets=state[0]
+        config=state[1]
+        index = config.pop("following_index")
+        if index is not None:self.following=self.planets[index]
+        for key in config:
+            setattr(self,key,config[key])
+        # 将行星移动到新的大小和位置
+        self._update_size()
+        for planet in self.planets:
+            planet.update()
 
 class Star(Turtle):
     _light=_dark=_circle=None
@@ -311,10 +340,10 @@ class Star(Turtle):
             self.left(self.rotation*self.gravSys.dt)
         elif self.sun:
             self.setheading(self.towards(self.sun))
-        if abs(self.x)>14000 or abs(self.y)>14000:
-            self.gravSys.removed_planets.append(self)
-            self.gravSys.planets.remove(self)
-            self.hideturtle()
+        #if abs(self.x)>14000 or abs(self.y)>14000:
+        #    self.gravSys.removed_planets.append(self)
+        #    self.gravSys.planets.remove(self)
+        #    self.hideturtle()
     def getsize(self): # 返回行星的显示大小
         return self._stretchfactor[0]*PLANET_SIZE*2
     def distance(self,other):
@@ -406,6 +435,13 @@ class Star(Turtle):
         self.pencolor(self.orbit_color)
     def __repr__(self):
         return object.__repr__(self)[:-1] + " Name: %s"%self.name + '>'
+    # for pickle
+    def __getstate__(self):
+        return (self.gravSys,self.name,self.m,(self.x,self.y),(self.dx,self.dy),
+                self._size,self.has_orbit,self.parent,self.keep_on_scr,self.rotation,
+                self.sun,self._shape)
+    def __setstate__(self,state):
+        self.__init__(*state)
 
 # 修复turtle模块绘制RoundStar的缺陷
 def _dot(self, pos, size, color):
@@ -430,6 +466,11 @@ class RoundStar(Star):
         if size>0.04:
             px=3 if size>0.2 else 2
             self.dot(max(size,px))
+    # for pickle
+    def __getstate__(self):
+        return (self.gravSys,self.name,self.m,(self.x,self.y),(self.dx,self.dy),
+                self._size,self._shape,self.has_orbit,self.parent,self.keep_on_scr,
+                self.rotation,self.sun)
 
 class Sun(Star):
     # 太阳不移动, 固定在引力系统的中心
@@ -491,7 +532,8 @@ class SpaceCraft(Star):
                 if self.gravSys.following is self:
                     planet=self.parent
                 else:planet=self.parent
-                dx=planet.dx;dy=planet.dy
+                if planet is not None:dx=planet.dx;dy=planet.dy
+                else:dx=dy=0
             else:dx=dy=0
             angle = math.atan2(self.dy - dy,self.dx - dx) * 180 / math.pi + 90
             self.setheading(angle)
@@ -519,6 +561,10 @@ class SpaceCraft(Star):
         v = math.hypot(self.dx,self.dy);step = 1500
         ax = self.dy / v * step;ay = - self.dx / v * step
         self.dx+=ax*self.gravSys.dt; self.dy+=ay*self.gravSys.dt
+    def __getstate__(self):
+        return (self.gravSys,self.m,(self.x,self.y),(self.dx,self.dy),
+                self._size,self.has_orbit,self.parent,self.keep_on_scr,
+                self.rotation)
 
 def main():
     global scr
@@ -530,66 +576,71 @@ def main():
     scr.bgcolor("black")
     scr.tracer(0,0)
 
-    # setup gravitational system
-    gs = GravSys()
-    sun = Sun(gs,"太阳",SUN_MASS, (0,0), (0,0),
-              2.3,has_orbit=False,shape=('yellow',))
-    sun.penup()
+    file = sys.argv[1] if len(sys.argv)==2 else 'game.pkl'
+    if os.path.isfile(file): # 如果有保存的数据
+        with open(file,'rb') as f:
+            gs=pickle.load(f)
+    else:
+        # setup gravitational system
+        gs = GravSys()
+        sun = Sun(gs,"太阳",SUN_MASS, (0,0), (0,0),
+                  2.3,has_orbit=False,shape=('yellow',))
+        sun.penup()
 
-    mercury = Star(gs,"水星",MERCURY_MASS, (60,0), (0,330),
-                   0.5, shape=("#b3b3b3","#7f7f7f","#4d4d4d"))
+        mercury = Star(gs,"水星",MERCURY_MASS, (60,0), (0,330),
+                       0.5, shape=("#b3b3b3","#7f7f7f","#4d4d4d"))
 
-    venus = Star(gs,"金星",VENUS_MASS, (-130,0), (0,-250),
-                 0.7, shape=("gold","brown","gold4"))
+        venus = Star(gs,"金星",VENUS_MASS, (-130,0), (0,-250),
+                     0.7, shape=("gold","brown","gold4"))
 
-    earth = Star(gs,"地球",EARTH_MASS, (260,0), (0,173),
-                 0.8, shape=("blue","#00008b","blue"))
+        earth = Star(gs,"地球",EARTH_MASS, (260,0), (0,173),
+                     0.8, shape=("blue","#00008b","blue"))
 
-    moon = Star(gs,"月球",MOON_MASS, (269,0), (0,262),
-                0.5,shape=("#b3b3b3","#4d4d4d","gray30"),
-                has_orbit=False, parent=earth)
+        moon = Star(gs,"月球",MOON_MASS, (269,0), (0,262),
+                    0.5,shape=("#b3b3b3","#4d4d4d","gray30"),
+                    has_orbit=False, parent=earth)
 
-    mars = Star(gs,"火星",MARS_MASS, (0,430), (-140, 0),
-                0.6, shape=("red","#8b0000","red"))
-    phobos = Star(gs,"火卫一",PHOBOS_MASS, (0,438), (-167, 0),
-                  0.1,shape=('circle',"orange"),
-                  has_orbit=False,parent=mars)
-    phobos.fillcolor("orange")
+        mars = Star(gs,"火星",MARS_MASS, (0,430), (-140, 0),
+                    0.6, shape=("red","#8b0000","red"))
+        phobos = Star(gs,"火卫一",PHOBOS_MASS, (0,438), (-167, 0),
+                      0.1,shape=('circle',"orange"),
+                      has_orbit=False,parent=mars)
+        phobos.fillcolor("orange")
 
-    # 创建小行星
-    for i in range(10):
-        ast=RoundStar(gs,"小行星%d"%i, AST_MASS,(0,0),(0,0),
-                      0.05,has_orbit=False)
-        ast.setheading(randrange(360))
-        ast.forward(randrange(700,800))
-        ast.x,ast.y=ast.pos()
-        v = ast.pos().rotate(90)
-        ast.dx,ast.dy=v[0]/7,v[1]/7
-        ast.pu()
-        ast.color("gray")
+        # 创建小行星
+        for i in range(10):
+            ast=RoundStar(gs,"小行星%d"%i, AST_MASS,(0,0),(0,0),
+                          0.05,has_orbit=False)
+            ast.setheading(randrange(360))
+            ast.forward(randrange(700,800))
+            ast.x,ast.y=ast.pos()
+            v = ast.pos().rotate(90)
+            ast.dx,ast.dy=v[0]/7,v[1]/7
+            ast.pu()
+            ast.color("gray")
 
-    # 木星及卫星
-    jupiter = Star(gs, "木星", JUPITER_MASS, (1100,0), (0, 86),
-                   1.2,shape=("#ffd39b","#8b7355","#8b6508"))
-    mw1 = Star(gs,"木卫一", MOON_MASS, (1125,0), (0,145),
-               0.05, shape=("circle","yellow"),
-               has_orbit=False,parent=jupiter)
-    mw2 = Star(gs,"木卫二", MOON_MASS, (1142,0), (0,134),
-               0.07,shape=("circle","#cd950c"),
-               has_orbit=False,parent=jupiter)
-    # 土星
-    saturn = Star(gs,"土星",SATURN_MASS, (2200,0), (0, 60),
-                  1.0, shape=("#fff68f","#8b864e","#8b864e"))
-    # 天王星
-    uranus = Star(gs, "天王星", URANUS_MASS, (0, 4300), (-43, 0),
-                  0.8, shape=("#add8e6","blue","blue"))
-    # 海王星
-    neptune = Star(gs, "海王星", NEPTUNE_MASS, (7500,0), (0, 34),
-                   0.8, shape=("blue","#483d8b","#191970"))
-    hw2 = Star(gs, "海卫二", MOON_MASS, (7600,0), (0, 48),
-               0.16, shape=("square","gray30"),
-               has_orbit=False,parent=neptune)
-    hw2.color("gray30")
+        # 木星及卫星
+        jupiter = Star(gs, "木星", JUPITER_MASS, (1100,0), (0, 86),
+                       1.2,shape=("#ffd39b","#8b7355","#8b6508"))
+        mw1 = Star(gs,"木卫一", MOON_MASS, (1125,0), (0,145),
+                   0.05, shape=("circle","yellow"),
+                   has_orbit=False,parent=jupiter)
+        mw2 = Star(gs,"木卫二", MOON_MASS, (1142,0), (0,134),
+                   0.07,shape=("circle","#cd950c"),
+                   has_orbit=False,parent=jupiter)
+        # 土星
+        saturn = Star(gs,"土星",SATURN_MASS, (2200,0), (0, 60),
+                      1.0, shape=("#fff68f","#8b864e","#8b864e"))
+        # 天王星
+        uranus = Star(gs, "天王星", URANUS_MASS, (0, 4300), (-43, 0),
+                      0.8, shape=("#add8e6","blue","blue"))
+        # 海王星
+        neptune = Star(gs, "海王星", NEPTUNE_MASS, (7500,0), (0, 34),
+                       0.8, shape=("blue","#483d8b","#191970"))
+        hw2 = Star(gs, "海卫二", MOON_MASS, (7600,0), (0, 48),
+                   0.16, shape=("square","gray30"),
+                   has_orbit=False,parent=neptune)
+        hw2.color("gray30")
 
     # 绑定键盘事件
     cv=scr.getcanvas()
@@ -601,7 +652,7 @@ def main():
     cv.bind_all("<Key-minus>",gs.decrease_speed)
     cv.bind_all("<Control-Key-equal>",gs.zoom) #Ctrl+"+"
     cv.bind_all("<Control-Key-minus>",gs.zoom) #Ctrl+"-"
-    cv.bind_all("<Control-Key-h>",lambda event:gs.follow(earth))
+    cv.bind_all("<Control-Key-h>",lambda event:gs.follow(gs.planets[3])) # 地球
     cv.bind_all("<Button-1>",gs.onclick)
     cv.bind_all("<B1-ButtonRelease>",gs.onrelease)
     #scr.tracer(1,0)
@@ -610,6 +661,8 @@ def main():
     gs.init()
     try:gs.start()
     except (Terminator,TclError):pass
+    with open(file,'wb') as f: # 保存数据
+        pickle.dump(gs,f)
 
 if __name__ == '__main__':
     main()
