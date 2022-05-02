@@ -71,7 +71,8 @@ Hello World!
           ('co_kwonlyargcount',0),
           ('co_nlocals',0),
           ('co_stacksize',1),
-          ('co_flags',67),
+          # 如果是函数中的code, 则是OPTIMIZED, NEWLOCALS, NOFREE
+          ('co_flags',64), # NOFREE
           ('co_code',b'd\x00S\x00'),#1   LOAD_CONST    0 (None)
                                     #2   RETURN_VALUE
           ('co_consts',(None,)),
