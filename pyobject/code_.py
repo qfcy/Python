@@ -43,7 +43,7 @@ Hello World!
 Hello World!
 """
 # 关于CodeType: 
-# 参数
+# 初始化参数
 # code(argcount, kwonlyargcount, nlocals, stacksize, flags, codestring,
 #    constants, names, varnames, filename, name, firstlineno,
 #    lnotab[, freevars[, cellvars]])
