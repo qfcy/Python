@@ -538,6 +538,8 @@ class Editor(Tk):
                 self.open()
             elif key=='s':#Ctrl+S键
                 self.save()
+            elif key=='n':
+                self.new()
             elif key=='f':
                 self.show_dialog(SearchDialog)
             elif key=='h':
