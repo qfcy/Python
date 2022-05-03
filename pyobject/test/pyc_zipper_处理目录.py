@@ -41,7 +41,7 @@ def process(file):
     if data[16]==227:
         old_header=data[:16];data=data[16:]
     else:
-        old_header=data[:12];data=datadata[12:]
+        old_header=data[:12];data=data[12:]
     co = Code(marshal.loads(data))
 
     process_code(co)

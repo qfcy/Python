@@ -30,11 +30,11 @@ def dump_to_pyc(pycfilename,code,pycheader=None):
 ##     32 CALL_FUNCTION            1
 ##     34 RETURN_VALUE
     c.co_code=b'''d\x00d\x01l\x00Z\x00d\x00d\x01l\x01Z\x01e\x02\
-e\x01\xa0\x03e\x00\xa0\x04d\x02\xa1\x01\xa1\x01\x83\x01\x01\x00d\x01S\x00'''
+e\x01\xa0\x03e\x00\xa0\x04d\x02\xa1\x01\xa1\x01\x83\x01\x01\x00d\x01S\x00''' # 仅支持Python 3.7及以上
     c.co_names=('bz2', 'marshal', 'exec', 'loads', 'decompress')
     #也可换成bz2,bz2等其他压缩模块
     c.co_consts=(0, None,bz2.compress(marshal.dumps(code._code)))
-    c.co_flags=64
+    c.co_flags=64 # NOFREE
     c.co_stacksize=6
     with open(pycfilename,'wb') as f:
         # 写入 pyc 文件头
@@ -71,7 +71,7 @@ for file in sys.argv[1:]:
     if data[16]==227:
         old_header=data[:16];data=data[16:]
     else:
-        old_header=data[:12];data=datadata[12:]
+        old_header=data[:12];data=data[12:]
     co = Code(marshal.loads(data))
 
     process_code(co)
