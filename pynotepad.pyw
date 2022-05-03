@@ -620,8 +620,9 @@ class Editor(Tk):
         self.after(20,self.edit_decoded) # 如果不使用after(),self.txt_decoded.get不会返回最新的值
     def edit_decoded(self):
         range_=self.contents.tag_ranges(SEL) # 获取选区
-        if not range_:return
-        start,end=range_[0].string,range_[1].string # 转换为字符串
+        if range_:
+            start,end=range_[0].string,range_[1].string # 转换为字符串
+        else:start=self.contents.index(INSERT);end=None
         try:
             coding=self.coding.get()
             if coding=="自动":
@@ -629,11 +630,12 @@ class Editor(Tk):
             byte = self.txt_decoded.get('1.0',END)[:-1].encode(coding)
             esc_char = to_escape_str(byte,linesep=False)
             self.file_changed=True;self.change_title()
-            self.contents.delete(start,end)
+            if range_:
+                self.contents.delete(start,end)
             self.contents.insert(start,esc_char)
             end = '%s+%dc'%(start, len(esc_char))
             self.contents.tag_add(SEL,start,end)
-        except Exception as err:handle(err)
+        except Exception as err:handle(err,parent=self)
 
     @classmethod
     def new(cls):
