@@ -17,9 +17,7 @@ try:
 except ImportError:from time import clock as perf_counter
 from random import randrange
 import math,turtle,pickle,os,sys
-sys.path.append('e:\\python')
 from turtle import *
-from pyobject import browse
 try:
     from tkinter import TclError
 except ImportError:
@@ -666,4 +664,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    if scr._RUNNING:mainloop()
