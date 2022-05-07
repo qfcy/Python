@@ -527,7 +527,7 @@ class Editor(Tk):
             self.contents['wrap'] = CHAR
         else:
             self.contents['wrap'] = NONE
-          # 注意:由于tkinter会自动设置复选框, 所以不需要此行代码
+        # 注意:由于tkinter会自动设置菜单复选框的变量, 所以不需要此行代码
 ##        self.is_autowrap.set(int(not self.is_autowrap.get()))
 
     def window_onkey(self,event):
