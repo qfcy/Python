@@ -10,6 +10,7 @@
 单击行星即可跟随该行星。
 
 1.2.6版更新: 增加了跟踪飞船, 即可控制飞船功能。
+1.3.1版: 增加使用Tab, Shift+Tab键切换行星功能。
 """
 try:
     from time import perf_counter
@@ -25,7 +26,7 @@ except ImportError:
 
 __author__="七分诚意 qq:3076711200"
 __email__="3416445406@qq.com"
-__version__="1.3"
+__version__="1.3.1"
 
 G = 8
 PLANET_SIZE=8 # 像素
@@ -78,7 +79,7 @@ class GravSys:
         for p in self.planets:
             p.init()
         self.__last_time=perf_counter()
-    def start(self):
+    def start(self): # 主循环, 最关键的函数
         while True:
             # 计算行星的位置
             for _ in range(self.speed):
@@ -119,7 +120,7 @@ class GravSys:
 
                 self.writer.clear()
                 self.writer.goto(
-                    scr.window_width()//2-160,scr.window_height()//2-80
+                    scr.window_width()//2-200,scr.window_height()//2-80
                 )
                 self.writer.write(
                     tip,
@@ -240,6 +241,21 @@ class GravSys:
 
         craft=SpaceCraft(self,SPACECRAFT_MASS,x_,v,parent=self.following)
         craft.penup()
+    def _switch(self,dt):
+        # 切换到上/下一个行星
+        if not self.planets:return # 空列表
+        if self.following==None or self.following not in self.planets:
+            index=0
+        else:
+            index=self.planets.index(self.following)+dt
+            if index < 0 or index>=len(self.planets): # !!
+                index = index % len(self.planets) # 控制index的范围
+        self.follow(self.planets[index])
+    def switch(self,event=None):
+        self._switch(1)
+    def reverse_switch(self,event):
+        self._switch(-1)
+    # 以下函数用于pickle保存状态功能
     def __new__(cls): # 避免pickle中引发AttributeError
         o=super().__new__(cls)
         o.__init__()
@@ -648,6 +664,8 @@ def main():
     cv.bind_all("<Key-Right>",gs.right)
     cv.bind_all("<Key-equal>",gs.increase_speed)
     cv.bind_all("<Key-minus>",gs.decrease_speed)
+    cv.bind_all("<Key-Tab>",gs.switch)
+    cv.bind_all("<Shift-Key-Tab>",gs.reverse_switch)
     cv.bind_all("<Control-Key-equal>",gs.zoom) #Ctrl+"+"
     cv.bind_all("<Control-Key-minus>",gs.zoom) #Ctrl+"-"
     cv.bind_all("<Control-Key-h>",lambda event:gs.follow(gs.planets[3])) # 地球
