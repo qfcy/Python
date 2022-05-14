@@ -1,30 +1,32 @@
 """简介 Introduction:
-A simple text editor written in Python.It supports editing text files,
-binary files with various encodings which can be automatically detected
-and changing font size.
-When you edit a binary file, the contents of the file are
-displayed as escape sequences.
-You can also find and replace words.
+A simple text editor written in Python.
+It supports editing text files,binary files with various encodings
+which can be automatically detected.
+When you edit a binary file, the contents of the file are displayed as escape sequences.
+You can find and replace words.You're also able to choose themes you prefer.
 In addition, code highlighting is supported when editing Python code files,like IDLE.
 What's more, dragging and dropping files into the editor window is now supported.
 
-一款使用tkinter编写的文本编辑器, 支持编辑文本文件、二进制文件、改变字体大小。
+一款使用tkinter编写的文本编辑器, 支持编辑文本文件、二进制文件、自由选择主题。
 支持ansi、gbk、utf-8等编码, 以及调用chardet库自动检测编码。
 编辑二进制文件时, 文件内容以转义序列形式显示。
-支持查找、替换、改变字体大小; 且支持撤销、重做; 支持将文件拖放入窗口。
+支持查找、替换; 且支持撤销、重做; 支持将文件拖放入窗口。
+可自由选择主题和字体, 改变字体大小。
 编辑python代码文件时, 支持代码高亮显示, 类似IDLE。
 
 作者:qfcy (七分诚意)
 版本:%s
 """
-import sys,os,time,pickle
+import sys,os,pickle
 from tkinter import *
 from tkinter.scrolledtext import ScrolledText
 import tkinter.ttk as ttk
 import tkinter.messagebox as msgbox
-import tkinter.filedialog as dialog
+import tkinter.filedialog as filediag
 import tkinter.simpledialog as simpledialog
+from tkinter.colorchooser import askcolor
 from tkinter import font
+
 # 以下为可选(非必需)的模块
 import webbrowser
 try:
@@ -39,21 +41,21 @@ except ImportError:chardet=None
 
 __email__="3416445406@qq.com"
 __author__="七分诚意 qq:3076711200 邮箱:%s"%__email__
-__version__="1.3.0";__doc__=__doc__%__version__ # 在__doc__中加入版本信息
+__version__="1.3.1";__doc__=__doc__%__version__ # 在__doc__中加入版本信息
 
-def view_hex(bytes):
+def view_hex(byte):
     result=''
-    for i in range(0,len(bytes)):
-        result+= bytes[i:i+1].hex().zfill(2) + ' '
+    for i in range(0,len(byte)):
+        result+= byte[i:i+1].hex().zfill(2) + ' '
         if (i+1) % 4 == 0:result+='\n'
     return result
 
-def to_escape_str(bytes,linesep=True):
+def to_escape_str(byte,linesep=True):
     # 将字节(bytes)转换为转义字符串
     # linesep: 是否以length间隔加入换行符, 加入换行符可提高Text控件的显示速度
     str='';length=1024
-    for i in range(0,len(bytes),length):
-        str+=repr( bytes[i: i+length] ) [2:-1]
+    for i in range(0,len(byte),length):
+        str+=repr( byte[i: i+length] ) [2:-1]
         if linesep:str+='\n'
     return str
 
@@ -81,17 +83,16 @@ def handle(err,parent=None):
 
 class SearchDialog(Toplevel):
     #查找对话框
-    instances=[]
     def __init__(self,master):
         self.master=master
         self.coding=self.master.coding.get()
-        cls=self.__class__
-        cls.instances.append(self)
     def init_window(self,title="查找"):
         Toplevel.__init__(self,self.master)
         self.title(title)
         self.attributes("-toolwindow",True)
         self.attributes("-topmost",True)
+        # 当父窗口隐藏后，窗口也跟随父窗口隐藏
+        self.transient(self.master)
         self.wm_protocol("WM_DELETE_WINDOW",self.onquit)
     def show(self):
         self.init_window()
@@ -179,13 +180,10 @@ class SearchDialog(Toplevel):
         text.focus_force()
         self.master.update_status()
     def onquit(self):
-##        cls=self.__class__
-##        if self in cls.instances:cls.instances.remove(self)
         self.withdraw()
 
 class ReplaceDialog(SearchDialog):
     #替换对话框
-    instances=[]
     def show(self):
         self.init_window(title="替换")
         frame=Frame(self)
@@ -278,23 +276,23 @@ class Editor(Tk):
     FONTSIZES=8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 36, 48
     NORMAL_FONT='宋体'
     NORMAL_FONTSIZE=11
+    TEXT_BG="SystemWindow";TEXT_FG="SystemWindowText" # 系统默认颜色
     FILETYPES=[("所有文件","*.*")]
-    CONFIGFILE=os.getenv("userprofile")+"\.pynotepad.pkl"
+    CONFIGFILE=os.getenv("userprofile")+"\\.pynotepad.pkl"
     AUTOWRAP=CHAR
 
-    windows=[]
+    instances=[]
     def __init__(self,filename=""):
         super().__init__()
         self.withdraw() # 暂时隐藏窗口,避免调用create_widgets()时窗口闪烁
         self.title(self.TITLE) # 初始化时预先显示标题
         self.bind("<Key>",self.window_onkey)
-        self.bind("<FocusIn>",self.focus)
-        self.bind("<FocusOut>",self.focus)
         self.protocol("WM_DELETE_WINDOW",self.ask_for_save)
 
-        self.isbinary=self.file_changed=False
+        self.isbinary=self.file_modified=False
         self.colorobj=self._codefilter=None
-        Editor.windows.append(self)
+        self._dialogs={}
+        Editor.instances.append(self)
 
         self.load_icon()
         self.loadconfig()
@@ -308,7 +306,7 @@ class Editor(Tk):
     def load_icon(self):
         for path in sys.path + [os.path.split(sys.executable)[0]]: # 用于Py2exe
             try:
-                self.iconbitmap("{}\{}".format(path,self.ICON))
+                self.iconbitmap("{}\\{}".format(path,self.ICON))
             except TclError:pass
             else:break
     def create_widgets(self):
@@ -317,9 +315,11 @@ class Editor(Tk):
         self.statusbar.pack(side=BOTTOM,fill=X)
         self.status=Label(self.statusbar,justify=RIGHT)
         self.status.pack(side=RIGHT)
-        self.txt_decoded=ScrolledText(self.statusbar,width=6,height=6)
+        self.txt_decoded=ScrolledText(self.statusbar,
+                        bg=self.TEXT_BG,fg=self.TEXT_FG,width=6,height=6)
         self.txt_decoded.insert('1.0',"在这里查看和编辑解码的数据")
-        self.hexdata=ScrolledText(self.statusbar,width=14,height=5)
+        self.hexdata=ScrolledText(self.statusbar,
+                        bg=self.TEXT_BG,fg=self.TEXT_FG,width=14,height=5)
         self.hexdata.insert('1.0',"在这里查看hex十六进制值")
 
         frame=Frame(self)
@@ -345,9 +345,9 @@ class Editor(Tk):
         self.msg=Label(frame)
         self.msg.pack(side=LEFT)
 
-        self.contents=ScrolledText(self,undo=True,width=75,height=24,
-                        font=(self.NORMAL_FONT,self.NORMAL_FONTSIZE,"normal"),
-                        wrap=self.AUTOWRAP)
+        self.contents=ScrolledText(self,undo=True, width=75, height=24,
+                        font = (self.NORMAL_FONT,self.NORMAL_FONTSIZE,"normal"),
+                        wrap=self.AUTOWRAP, bg=self.TEXT_BG,fg=self.TEXT_FG)
         self.contents.pack(expand=True,fill=BOTH)
         self.contents.bind("<Key>",self.text_change)
         self.contents.bind("<B1-ButtonRelease>",self.update_status)
@@ -362,14 +362,14 @@ class Editor(Tk):
             self.hexdata.pack(fill=Y)
             self.status.pack_forget()
             self.status.pack(fill=X)
-            self.editmenu.entryconfig(8,state=NORMAL)
+            self.editmenu.entryconfig(8,state=NORMAL) # 允许插入十六进制数据
         else: # 隐藏工具
             if self.txt_decoded:
                 self.txt_decoded.pack_forget()
             if self.hexdata:
                 self.hexdata.pack_forget()
             self.status.pack(side=RIGHT)
-            self.editmenu.entryconfig(8,state=DISABLED)
+            self.editmenu.entryconfig(8,state=DISABLED) # 禁止插入
     def create_menu(self):
         menu=Menu(self)
         filemenu=Menu(self,tearoff=False)
@@ -429,6 +429,11 @@ class Editor(Tk):
         self.contents.bind("<Button-3>",
                     lambda event:self.editmenu.post(event.x_root,event.y_root))
         view.add_cascade(label="字体",menu=fontsize)
+        theme_menu=Menu(self,tearoff=False)
+        theme_menu.add_command(label="选择前景色",command=self.select_fg)
+        theme_menu.add_command(label="选择背景色",command=self.select_bg)
+        theme_menu.add_command(label="重置",command=self.reset_theme)
+        view.add_cascade(label="主题",menu=theme_menu)
 
         helpmenu=Menu(self,tearoff=False)
         helpmenu.add_command(label="关于",command=self.about)
@@ -465,15 +470,16 @@ class Editor(Tk):
         # 显示菜单
         self.config(menu=menu)
 
-
     def show_dialog(self,dialog_type):
         # dialog_type是对话框的类型
-        for dialog in dialog_type.instances:
-            if dialog.master is self:
-                dialog.state('normal') # 恢复隐藏的窗口
-                dialog.focus_force()
-                return # 不再显示新的对话框
-        dialog_type(self).show()
+        if dialog_type in self._dialogs:
+            # 不再显示新的对话框
+            d=self.dialogs[dialog_type]
+            d.state('normal') # 恢复隐藏的窗口
+            d.focus_force()
+        else:
+            d = dialog_type(self);d.show()
+            self._dialogs[dialog_type] = d
     def findnext(self):
         for dialog in SearchDialog.instances:
             if dialog.master is self:
@@ -503,8 +509,8 @@ class Editor(Tk):
         dialog.resizable(False,False)
         dialog.attributes('-toolwindow',True)
         opt = ttk.Combobox(dialog)
-        # tkinter.font.families() 获取所有字体名称
-        opt['values']=sorted(font.families())
+        # tkinter.font.families() 获取所有字体名称, 注意root参数
+        opt['values']=sorted(font.families(root=self))
         opt.grid(row=0,column=0,columnspan=2,padx=15,pady=20)
         ttk.Button(dialog,text='确定',command=ok).grid(row=1,column=0)
         ttk.Button(dialog,text='取消',command=dialog.destroy).grid(row=1,column=1)
@@ -529,6 +535,19 @@ class Editor(Tk):
             self.contents['wrap'] = NONE
         # 注意:由于tkinter会自动设置菜单复选框的变量, 所以不需要此行代码
 ##        self.is_autowrap.set(int(not self.is_autowrap.get()))
+    def select_fg(self):
+        self.contents["fg"]=self.txt_decoded["fg"]\
+                    =self.hexdata["fg"] = askcolor(parent=self,
+                                                   color=self.contents["fg"])[1]
+    def select_bg(self):
+        self.contents["bg"]=self.txt_decoded["bg"]\
+                    =self.hexdata["bg"] = askcolor(parent=self,
+                                                   color=self.contents["bg"])[1]
+    def reset_theme(self):
+        self.contents["bg"]=self.txt_decoded["bg"]\
+                    =self.hexdata["bg"] = "SystemWindow"
+        self.contents["fg"]=self.txt_decoded["fg"]\
+                    =self.hexdata["fg"] = "SystemWindowText"
 
     def window_onkey(self,event):
         # 如果按下Ctrl键
@@ -553,24 +572,9 @@ class Editor(Tk):
         elif event.keycode == 93: # 按下了菜单键
             self.editmenu.post(self.winfo_x()+self.winfo_width(),
                                self.winfo_y()+self.winfo_height())
-    def focus(self,event):
-        # 当窗口获得或失去焦点时,调用此函数, 用于使对话框置于主窗体前
-        for dialog in SearchDialog.instances + ReplaceDialog.instances:
-            if dialog.master is self and not dialog.wm_state()=='withdrawn':
-                if event.type==EventType.FocusIn:
-                    dialog.attributes("-topmost",True)
-                    if not dialog.wm_state()=="normal":
-                        dialog.deiconify()
-                    self.contents.focus_force()
-                else:
-                    dialog.attributes("-topmost",False)
-                    if self.wm_state()=="iconic":
-                        dialog.withdraw()
-                        #window.iconify()
-                break
 
     def text_change(self,event=None):
-        self.file_changed=True
+        self.file_modified=True
         self.update_status();self.change_title()
     def update_status(self,event=None):
         if self.isbinary:
@@ -631,7 +635,7 @@ class Editor(Tk):
                 msgbox.showinfo('','不支持自动编码, 请选择或输入其他编码');return
             byte = self.txt_decoded.get('1.0',END)[:-1].encode(coding)
             esc_char = to_escape_str(byte,linesep=False)
-            self.file_changed=True;self.change_title()
+            self.file_modified=True;self.change_title()
             if range_:
                 self.contents.delete(start,end)
             self.contents.insert(start,esc_char)
@@ -639,13 +643,15 @@ class Editor(Tk):
             self.contents.tag_add(SEL,start,end)
         except Exception as err:handle(err,parent=self)
 
-    @classmethod
-    def new(cls):
-        window=cls()
+    def new(self):
+        try:self.saveconfig() # 保存配置，使新的窗口加载修改后的配置
+        except OSError:pass
+        window=Editor()
         window.focus_force()
-    @classmethod
-    def new_binary(cls):
-        window=cls()
+    def new_binary(self):
+        try:self.saveconfig()
+        except OSError:pass
+        window=Editor()
         window.isbinary=True
         window.create_binarytools()
         window.change_title()
@@ -656,13 +662,13 @@ class Editor(Tk):
         #加载一个文件
         if self.ask_for_save(quit=False)==0:return
         if not filename:
-            filename=dialog.askopenfilename(master=self,title='打开',
+            filename=filediag.askopenfilename(master=self,title='打开',
                                 initialdir=os.path.split(self.filename)[0],
                                 filetypes=self.FILETYPES)
         self.load(filename)
     def open_as_binary(self):
         if self.ask_for_save(quit=False)==0:return
-        filename=dialog.askopenfilename(master=self,title='打开二进制文件',
+        filename=filediag.askopenfilename(master=self,title='打开二进制文件',
                                 initialdir=os.path.split(self.filename)[0],
                                 filetypes=self.FILETYPES)
         self.load(filename,binary=True)
@@ -685,7 +691,7 @@ class Editor(Tk):
                     except TclError:self.contents.insert(INSERT,' ')
             self.contents.mark_set(INSERT,"1.0")
             self.create_binarytools()
-            self.file_changed=False
+            self.file_modified=False
             self.change_title()
             self.change_mode()
             self.contents.edit_reset() # -*****- 1.2.5版: 重置文本框的撤销功能
@@ -736,7 +742,7 @@ class Editor(Tk):
         file = os.path.split(self.filename)[1] or "未命名"
         newtitle="PyNotepad - "+ file +\
                   (" (二进制模式)" if self.isbinary else '')
-        if self.file_changed:
+        if self.file_modified:
             newtitle="*%s*"%newtitle
         self.title(newtitle)
     def change_mode(self):
@@ -751,7 +757,7 @@ class Editor(Tk):
                 self.colorobj.removefilter(self._codefilter)
     def ask_for_save(self,quit=True):
         my_ret=None
-        if self.file_changed: ## and self.filenamebox.get():
+        if self.file_modified: ## and self.filenamebox.get():
             retval=msgbox.askyesnocancel("文件尚未保存",
                               "是否保存{}的更改?".format(
                             os.path.split(self.filename)[1] or "当前文件"),
@@ -768,14 +774,15 @@ class Editor(Tk):
                 # 取消
                 my_ret=0;quit=False  # 0表示cancel
         if quit:
-            Editor.windows.remove(self)
-            self.saveconfig()
+            Editor.instances.remove(self)
+            try:self.saveconfig()
+            except OSError:pass
             self.destroy() # tkinter不会自动关闭窗口, 需调用函数手动关闭
         return my_ret
     def save(self):
         #保存文件
         if not self.filename:
-            self.filename=dialog.asksaveasfilename(master=self,
+            self.filename=filediag.asksaveasfilename(master=self,
                     initialdir=os.path.split(self.filename)[0],
                     filetypes=self.FILETYPES)
         filename=self.filename
@@ -792,14 +799,14 @@ class Editor(Tk):
                 with open(filename, 'wb') as f:
                     f.write(data)
                 self.filename=filename
-                self.file_changed=False
+                self.file_modified=False
             except Exception as err:handle(err,parent=self)
             self.change_title()
             self.change_mode()
         else:
             return 0 # 0表示cancel
     def save_as(self):
-        filename=dialog.asksaveasfilename(master=self,
+        filename=filediag.asksaveasfilename(master=self,
                     initialdir=os.path.split(self.filename)[0],
                     filetypes=self.FILETYPES)
         if filename:
@@ -827,14 +834,16 @@ class Editor(Tk):
         cfg={'NORMAL_CODING':self.coding.get(),
              'NORMAL_FONT': self._get_fontname(),
              'NORMAL_FONTSIZE': int(font[-2]),
-             'AUTOWRAP': self.contents['wrap']}
+             'AUTOWRAP': self.contents['wrap'],
+             'TEXT_BG':self.contents["bg"],
+             'TEXT_FG':self.contents["fg"],}
         with open(self.CONFIGFILE,'wb') as f:
             pickle.dump(cfg,f)
     def onfiledrag(self,files):
         self.drag_files=files
         self.after(50,self.onfiledrag2)
     def onfiledrag2(self):
-        if not self.contents.get('1.0',END).strip() and not self.file_changed:
+        if not self.contents.get('1.0',END).strip() and not self.file_modified:
             self.open(self.drag_files[0].decode('ansi'))
             del self.drag_files[0]
         for item in self.drag_files:
