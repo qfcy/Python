@@ -1,5 +1,5 @@
-﻿"""A simple python timer module.
-一个简单的Python计时器模块,其中包含Timer类。
+"""A simple python timer module to analysis performances.
+一个Python计时器模块,其中包含Timer类和timer装饰器, 可用于程序性能分析。
 
 示例1:
 import timer
@@ -19,8 +19,7 @@ from timer import timer
 def func():
     print("Hello World!")
 """
-import sys
-from time import perf_counter
+import sys,time
 import functools
 from types import FunctionType
 from inspect import isgeneratorfunction
@@ -29,6 +28,7 @@ __email__="3416445406@qq.com"
 __author__="七分诚意 qq:3076711200 邮箱:%s"%__email__
 __version__="1.2.1"
 
+perf_counter=time.perf_counter
 class Timer:
     "一个计时器类"
     def __init__(self):
@@ -88,12 +88,12 @@ def func(args):
 
     default_msg="调用{func}用时:{time:.8f}秒"
     default_gen_msg="调用{func} 生成一个值平均用时:{avg:.8f}秒 总用时:{time:.8f}"
-    # 直接使用@timer
-    if isinstance(msg,FunctionType):
+
+    if isinstance(msg,FunctionType):# 直接使用@timer
         fun=msg
         msg=default_gen_msg if isgeneratorfunction(fun) else default_msg
         return _wrapper(fun)
-    else:
+    else: # @timer后还使用其他参数
         msg=msg or (default_gen_msg if isgeneratorfunction(fun) else default_msg)
         return _wrapper
 
@@ -108,8 +108,9 @@ def test2():pass
 @timer
 def test3():
     yield 1
-    #time.sleep(0.0003)
+    time.sleep(0.5)
     yield 3
+    time.sleep(0.1) # 这一行不被计算在平均用时内
 
 if __name__=="__main__":
     list(test3()) # test2() # test1()
