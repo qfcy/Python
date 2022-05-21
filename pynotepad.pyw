@@ -135,7 +135,7 @@ class SearchDialog(Toplevel):
                 handle(err,parent=self);return
         if self.use_regexpr.get():
             try:re.compile(key)
-            except re.error:
+            except re.error as err:
                 handle(err,parent=self);return
         # 默认从当前光标位置开始查找
         pos=text.search(key,INSERT,END,
