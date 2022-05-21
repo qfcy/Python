@@ -11,8 +11,7 @@ __author__="七分诚意 qq:3076711200 邮箱:%s"%__email__
 __version__="1.2.0"
 
 _ignore_names=["__builtins__","__doc__"]
-__all__=["objectname","bases","describe","desc",
-         "browse","make_list","search"]
+__all__=["objectname","bases","describe","desc"]
 
 def objectname(obj):
     """objectname(obj) - 返回一个对象的名称,形如xxmodule.xxclass。
@@ -90,16 +89,19 @@ file:一个类似文件的对象。
 
 desc=describe #别名
 try:
-    from .browser import *
+    from .browser import browse
+    __all__.append("browse")
 # (ImportError,SystemError): 修复Python 3.4的bug
 except (ImportError,SystemError):pass
 try:
     from .search import make_list,search #,test_make_list,test_search
+    __all__.extend(["make_list","search"])
 # 同上
 except (ImportError,SystemError):pass
 
 try:
     from .code_ import Code
+    __all__.append("Code")
 except (ImportError,SystemError):pass
 
 def test():

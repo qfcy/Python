@@ -17,4 +17,4 @@ else:
     result = input('是否编译当前目录 (%s) 下的所有文件?' % currdir)
     if result.lower().startswith('y'):
         import compileall
-        compileall.compile_dir(currdir, maxlevels=1, optimize=1)
+        compileall.compile_dir(currdir, maxlevels=1) # optimize=1

@@ -42,6 +42,9 @@ WS_EX_ACCEPTFILES = 0x10
 WS_EX_CLIENTEDGE= 0x200
 WS_EX_TOOLWINDOW = 0x80
 WS_EX_WINDOWEDGE = 0x100
+
+LWA_ALPHA = 0x2;LWA_COLORKEY=0x1
+WS_EX_LAYERED = 0x80000
 hwnd=0;_top=False;old=(WS_VISIBLE,0)
 
 def top():
@@ -63,7 +66,7 @@ def settitle(): # 设置标题
     title=askstring('','输入窗口标题')
     windll.user32.SetWindowTextW(hwnd, title)
 
-def reset_style():
+def backup_style(): # 备份原先的窗口样式
     global old
     old = (windll.user32.GetWindowLongA(hwnd,GWL_STYLE),
            windll.user32.GetWindowLongA(hwnd,GWL_EXSTYLE))
@@ -82,10 +85,10 @@ def set_style():# 设置窗口样式
         funcs[v.get()]()
         win.destroy()
 
-    def normal():
+    def default():
         windll.user32.SetWindowLongA(hwnd, GWL_STYLE, old[0])
         windll.user32.SetWindowLongA(hwnd, GWL_EXSTYLE, old[1])
-    _addoption(win,'正常',normal)
+    _addoption(win,'默认样式',default)
     # 设置GWL_STYLE时须加入WS_VISIBLE+WS_CLIPSIBLINGS+WS_CLIPCHILDREN,使窗口可用
     _addoption(win,'无边框',
                lambda:windll.user32.SetWindowLongA(hwnd, GWL_STYLE,
@@ -106,6 +109,23 @@ def set_style():# 设置窗口样式
     ttk._Button(win,text='确定',command=confirm).pack(side=tk.RIGHT)
     win.grab_set();win.focus_force()
 
+def set_alpha():# 设置窗口透明度
+    def confirm():
+        exstyle = windll.user32.GetWindowLongA(hwnd, GWL_EXSTYLE)
+        exstyle |= WS_EX_LAYERED  # 使窗口具有能设置透明度的样式
+        windll.user32.SetWindowLongA(hwnd, GWL_EXSTYLE, exstyle)
+        # 设置透明度
+        windll.user32.SetLayeredWindowAttributes(hwnd,0,
+                                                 int(alpha.get()),LWA_ALPHA)
+        win.destroy()
+
+    win=tk.Toplevel(root)
+    win.title('更改透明度')
+    alpha=ttk.Scale(win,from_=0,to=255,length=200,
+                    orient=tk.HORIZONTAL)
+    alpha.set(192);alpha.pack()
+    ttk._Button(win,text='取消',command=win.destroy).pack(side=tk.RIGHT)
+    ttk._Button(win,text='确定',command=confirm).pack(side=tk.RIGHT)
 
 def findwin(*args):
     global hwnd,_top
@@ -113,7 +133,7 @@ def findwin(*args):
     print(hwnd)
     _setbtn()
     _top=False
-    reset_style()
+    backup_style()
 
 class PointAPI(Structure):
     #PointAPI类型,用于获取鼠标坐标
@@ -135,7 +155,7 @@ def _getwin(event):
     winname.trace_remove('write',__callback_name) # 避免调用set方法时修改了hwnd
     winname.set(title)
     winname.trace('w',findwin)
-    if prev2 != hwnd:reset_style()
+    if prev2 != hwnd:backup_style()
     _setbtn()
 
 def select_win():
@@ -168,6 +188,7 @@ ttk.Button(frame,text='更改标题',command=settitle,
            state=tk.DISABLED).grid(row=3,column=2)
 ttk.Button(frame,text='更改样式',command=set_style,
            state=tk.DISABLED).grid(row=4,column=1)
-
+ttk.Button(frame,text='更改透明度',command=set_alpha,
+           state=tk.DISABLED).grid(row=4,column=2)
 frame.pack()
 root.mainloop()
