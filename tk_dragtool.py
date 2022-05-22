@@ -8,7 +8,7 @@ from ctypes import *
 __author__="qfcy"
 __version__="1.1.2"
 
-class _PointAPI(Structure):
+class _PointAPI(Structure): # 用于getpos()中API函数的调用
     _fields_ = [("x", c_ulong), ("y", c_ulong)]
 
 def getpos():
@@ -20,18 +20,18 @@ def xpos():return getpos()[0]
 def ypos():return getpos()[1]
 
 # tkinter控件支持作为字典键。
-# bound的键是dragger, 值是包含1个或多个绑定事件的列表
+# bound的键是dragger, 值是包含1个或多个绑定事件的列表, 值用于存储控件绑定的数据
 # 列表的一项是对应tkwidget和其他信息的元组
 bound = {}
-def __add(wid,data):
+def __add(wid,data):# 添加绑定数据
     bound[wid]=bound.get(wid,[])+[data]
-def __remove(wid,key):
+def __remove(wid,key): # 用于从bound中移除绑定
     for i in range(len(bound[wid])):
         try:
             if bound[wid][i][0]==key:
                 del bound[wid][i]
         except IndexError:pass
-def __get(wid,key=''):
+def __get(wid,key=''): # 用于从bound中获取绑定数据
     if not key:return bound[wid][0]
     if key=='resize':
         for i in range(len(bound[wid])):
@@ -69,7 +69,9 @@ def _drag(event):
         if data[0]!='drag':return
         widget=data[1]
         dx = xpos()-widget.mousex # 计算鼠标当前位置和开始拖动时位置的差距
-        dy = ypos()-widget.mousey # 鼠标位置不能用event.x和event.y
+        # 注: 鼠标位置不能用event.x和event.y
+        # event.x,event.y与控件的位置、大小有关，不能真实地反映鼠标移动的距离差值
+        dy = ypos()-widget.mousey 
         move(widget,widget.startx + dx if data[2] else None,
                     widget.starty + dy if data[3] else None)
 def _resize(event):
@@ -87,8 +89,8 @@ def _resize(event):
         move(widget,y=min(widget.starty+dy,widget.starty+widget.start_h-minh),
                     height=max(widget.start_h-dy,minh))
 
-    __remove(event.widget,data[0])# 取消绑定
-    widget.update()
+    __remove(event.widget,data[0])# 取消绑定, 为防止widget.update()中产生新的事件, 避免_resize()被tkinter反复调用
+    widget.update() # 刷新控件, 使以下左右缩放时, winfo_height()返回的是新的控件坐标, 而不是旧的
     __add(event.widget,data) # 重新绑定
     
     if 'e' in type:
@@ -100,7 +102,7 @@ def _resize(event):
 def draggable(tkwidget,x=True,y=True):
     """调用draggable(tkwidget) 使tkwidget可拖动。
 tkwidget: 一个控件(Widget)或一个窗口(Wm)。
-x 和 y: 只允许改变x坐标或y坐标."""
+x 和 y: 只允许改变x坐标或y坐标。"""
     bind_drag(tkwidget,tkwidget,x,y)
 
 def bind_drag(tkwidget,dragger,x=True,y=True):
@@ -109,10 +111,10 @@ tkwidget: 被拖动的控件或窗口,
 dragger: 接收鼠标事件的控件,
 调用bind_drag后,当鼠标在dragger上拖动时, tkwidget会被拖动, 但dragger
 作为接收鼠标事件的控件, 位置不会改变。
-x 和 y: 作用同上。"""
+x 和 y: 同draggable()函数。"""
     dragger.bind("<Button-1>",_mousedown,add='+')
     dragger.bind("<B1-Motion>",_drag,add='+')
-    __add(dragger,('drag',tkwidget,x,y))
+    __add(dragger,('drag',tkwidget,x,y)) # 在bound字典中记录数据
 
 def bind_resize(tkwidget,dragger,anchor,min_w=0,min_h=0,move_dragger=True):
     """绑定缩放事件。
@@ -150,7 +152,7 @@ def test():
     x1=20;y1=20;x2=220;y2=170;size=10
     btn.place(x=x1,y=y1,width=x2-x1,height=y2-y1)
     root.update()
-
+    # 创建各个手柄, 这里是控件缩放的算法
     add_button(lambda:(btn.winfo_x()-size, btn.winfo_y()-size),
                'nw')
     add_button(lambda:(btn.winfo_x()+btn.winfo_width()//2,
