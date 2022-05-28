@@ -632,7 +632,8 @@ class Editor(Tk):
         try:
             coding=self.coding.get()
             if coding=="自动":
-                msgbox.showinfo('','不支持自动编码, 请选择或输入其他编码');return
+                msgbox.showinfo('','不支持自动编码, 请选择或输入其他编码',parent=self)
+                return
             byte = self.txt_decoded.get('1.0',END)[:-1].encode(coding)
             esc_char = to_escape_str(byte,linesep=False)
             self.file_modified=True;self.change_title()
