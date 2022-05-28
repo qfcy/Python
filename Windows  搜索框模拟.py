@@ -9,7 +9,6 @@ import windnd
 
 path=None
 def ondrag(filenames):
-    print(filenames)
     global path
     if len(filenames)!=1 or not \
        os.path.isdir(filenames[0].decode("ansi")):
