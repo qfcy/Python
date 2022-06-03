@@ -1,0 +1,59 @@
+"命令行: encryptions.py 文件名1 [文件名2] [...]"
+import hashlib,sys,os
+__all__=["encrypt","decrypt","test"]
+FILETYPE=".encrypt"
+
+def encrypt(data,password):
+    sha256=hashlib.sha256(password.encode("utf-8")).hexdigest()
+    encrypted = sha256.encode() + len(data).to_bytes(8,"big")
+    sha256_num = int.from_bytes(sha256.encode(),"little")
+    for i in range(0,len(data),64): # sha256结果为64字节长
+        num = int.from_bytes(data[i:i+64],"little") # 截取data的一部分
+        num_enc = num ^ sha256_num # 将data的一部分与sha256结果进行异或运算
+        encrypted += num_enc.to_bytes(64,"little")
+    return encrypted
+
+def decrypt(encrypted,password):
+    sha256 = encrypted[:64]
+    if hashlib.sha256(password.encode("utf-8")).hexdigest().encode()\
+                   != sha256:
+        raise TypeError("Invalid password")
+
+    sha256_num = int.from_bytes(sha256,"little")
+    length = int.from_bytes(encrypted[64:64+8],"big")
+    data = b''
+    for i in range(64+8,len(encrypted),64):
+        num_enc = int.from_bytes(encrypted[i:i+64],"little") # 截取data的一部分
+        num = num_enc ^ sha256_num # 将data的一部分与sha256结果进行异或运算
+        data += num.to_bytes(64,"little")
+    return data[:length]
+
+def test():
+    seq=bytes(range(256));password="123"
+    assert decrypt(encrypt(seq,password),password)==seq
+
+def __ask_replace(filename):
+    if not os.path.isfile(filename):return True
+    result=input("文件%s已存在,要替换它吗? "%filename)
+    return result.lower().startswith('y')
+def main():
+    if len(sys.argv)==1:
+        print("""%s\n未提供文件。"""%__doc__);return
+    for arg in sys.argv[1:]:
+        print("处理文件 "+arg)
+
+        with open(arg,'rb') as fin:
+            if arg.endswith(FILETYPE):#解密
+                newfile = arg[:-len(FILETYPE)]
+                if not __ask_replace(newfile):continue
+                password = input("输入密码: ")
+                data = decrypt(fin.read(),password)
+            else: #加密
+                newfile = arg + FILETYPE
+                if not __ask_replace(newfile):continue
+                password = input("输入密码: ")
+                data = encrypt(fin.read(),password)
+            with open(newfile,"wb") as fout:
+                fout.write(data)
+
+if __name__=="__main__":main()
