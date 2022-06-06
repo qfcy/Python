@@ -6,10 +6,12 @@ FILETYPE=".encrypt"
 def encrypt(data,password):
     sha256=hashlib.sha256(password.encode("utf-8")).hexdigest()
     encrypted = sha256.encode() + len(data).to_bytes(8,"big")
-    sha256_num = int.from_bytes(sha256.encode(),"little")
+    mask = hashlib.sha256((password*2).encode("utf-8")
+                          ).hexdigest() # 使用密码的变体(重复2次)的sha256作为掩码
+    mask_num = int.from_bytes(mask.encode(),"little")
     for i in range(0,len(data),64): # sha256结果为64字节长
         num = int.from_bytes(data[i:i+64],"little") # 截取data的一部分
-        num_enc = num ^ sha256_num # 将data的一部分与sha256结果进行异或运算
+        num_enc = num ^ mask_num # 将data的一部分与掩码进行异或运算
         encrypted += num_enc.to_bytes(64,"little")
     return encrypted
 
@@ -19,14 +21,15 @@ def decrypt(encrypted,password):
                    != sha256:
         raise TypeError("Invalid password")
 
-    sha256_num = int.from_bytes(sha256,"little")
+    mask = hashlib.sha256((password*2).encode("utf-8")).hexdigest()
+    mask_num = int.from_bytes(mask.encode(),"little")
     length = int.from_bytes(encrypted[64:64+8],"big")
     data = b''
     for i in range(64+8,len(encrypted),64):
-        num_enc = int.from_bytes(encrypted[i:i+64],"little") # 截取data的一部分
-        num = num_enc ^ sha256_num # 将data的一部分与sha256结果进行异或运算
+        num_enc = int.from_bytes(encrypted[i:i+64],"little")
+        num = num_enc ^ mask_num # 与掩码进行异或运算
         data += num.to_bytes(64,"little")
-    return data[:length]
+    return data[:length] # 返回原长度的数据
 
 def test():
     seq=bytes(range(256));password="123"
@@ -34,7 +37,7 @@ def test():
 
 def __ask_replace(filename):
     if not os.path.isfile(filename):return True
-    result=input("文件%s已存在,要替换它吗? "%filename)
+    result=input("文件 %s已存在,要替换它吗? "%filename)
     return result.lower().startswith('y')
 def main():
     if len(sys.argv)==1:
