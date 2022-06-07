@@ -41,7 +41,7 @@ except ImportError:chardet=None
 
 __email__="3416445406@qq.com"
 __author__="七分诚意 qq:3076711200 邮箱:%s"%__email__
-__version__="1.3.1";__doc__=__doc__%__version__ # 在__doc__中加入版本信息
+__version__="1.3.2";__doc__=__doc__%__version__ # 在__doc__中加入版本信息
 
 def view_hex(byte):
     result=''
@@ -148,7 +148,8 @@ class SearchDialog(Toplevel):
         if pos:
             if self.use_regexpr.get(): # 获取正则表达式匹配的字符串长度
                 text_after = text.get(pos,END)
-                length = re.match(key,text_after).span()[1]
+                flag = re.IGNORECASE if not self.match_case.get() else 0
+                length = re.match(key,text_after,flag).span()[1]
             else:
                 length = len(key)
             newpos="%s+%dc"%(pos,length)
@@ -231,13 +232,14 @@ class ReplaceDialog(SearchDialog):
         self.master.text_change()
         pos,newpos=result
         newtext=self.text_to_replace.get()
-        if self.use_escape_char.get():
-            newtext=to_bytes(newtext).decode(self.master.coding.get())
-        if self.use_regexpr.get():
-            old=text.get(pos,newpos)
-            try:newtext=re.sub(self.keyword.get(),newtext,old)
-            except re.error as err:
-                handle(err,parent=self);return
+        try:
+            if self.use_escape_char.get():
+                newtext=to_bytes(newtext).decode(self.master.coding.get())
+            if self.use_regexpr.get():
+                old=text.get(pos,newpos)
+                newtext=re.sub(self.keyword.get(),newtext,old)
+        except Exception as err:
+            handle(err,parent=self);return
         text.delete(pos,newpos)
         text.insert(pos,newtext)
         end_pos="%s+%dc"%(pos,len(newtext))
@@ -474,21 +476,19 @@ class Editor(Tk):
         # dialog_type是对话框的类型
         if dialog_type in self._dialogs:
             # 不再显示新的对话框
-            d=self.dialogs[dialog_type]
+            d=self._dialogs[dialog_type]
             d.state('normal') # 恢复隐藏的窗口
             d.focus_force()
         else:
             d = dialog_type(self);d.show()
             self._dialogs[dialog_type] = d
     def findnext(self):
-        for dialog in SearchDialog.instances:
-            if dialog.master is self:
-                dialog.findnext()
-                return
-        for dialog in ReplaceDialog.instances:
-            if dialog.master is self:
-                dialog.findnext()
-                return
+        fd = self._dialogs.get(SearchDialog,None)
+        if fd:
+            if fd.findnext():return
+        rd = self._dialogs.get(ReplaceDialog,None)
+        if rd:
+            rd.findnext()
     def _get_fontname(self):
         font=' '.join(self.contents["font"].split(' ')[:-2])
         # tkinter会将带空格的字体名称用{}括起来
@@ -543,11 +543,18 @@ class Editor(Tk):
         self.contents["bg"]=self.txt_decoded["bg"]\
                     =self.hexdata["bg"] = askcolor(parent=self,
                                                    color=self.contents["bg"])[1]
+        self.set_tag_bg()
     def reset_theme(self):
         self.contents["bg"]=self.txt_decoded["bg"]\
                     =self.hexdata["bg"] = "SystemWindow"
         self.contents["fg"]=self.txt_decoded["fg"]\
                     =self.hexdata["fg"] = "SystemWindowText"
+        self.set_tag_bg()
+    def set_tag_bg(self): # 在代码高亮中, 设置tag的背景色, 使其与文本框背景色匹配
+        for tag in self.contents.tag_names():
+            if tag.lower() != "sel":
+                self.contents.tag_config(tag, background=self.contents["bg"])
+
 
     def window_onkey(self,event):
         # 如果按下Ctrl键
@@ -649,6 +656,7 @@ class Editor(Tk):
         except OSError:pass
         window=Editor()
         window.focus_force()
+        return window
     def new_binary(self):
         try:self.saveconfig()
         except OSError:pass
@@ -659,24 +667,28 @@ class Editor(Tk):
         window.change_mode()
         window.contents.edit_reset()
         window.focus_force()
-    def open(self,filename=None):
+        return window
+    def open(self):
         #加载一个文件
-        if self.ask_for_save(quit=False)==0:return
-        if not filename:
-            filename=filediag.askopenfilename(master=self,title='打开',
-                                initialdir=os.path.split(self.filename)[0],
-                                filetypes=self.FILETYPES)
-        self.load(filename)
+        #if self.ask_for_save(quit=False)==0:return
+        filename=filediag.askopenfilename(master=self,title='打开',
+                            initialdir=os.path.split(self.filename)[0],
+                            filetypes=self.FILETYPES)
+        if not filename:return
+        if not self.filename and not self.file_modified:
+            self.load(filename)
+        else:self.new().load(filename)
     def open_as_binary(self):
-        if self.ask_for_save(quit=False)==0:return
+        #if self.ask_for_save(quit=False)==0:return
         filename=filediag.askopenfilename(master=self,title='打开二进制文件',
-                                initialdir=os.path.split(self.filename)[0],
-                                filetypes=self.FILETYPES)
-        self.load(filename,binary=True)
+                            initialdir=os.path.split(self.filename)[0],
+                            filetypes=self.FILETYPES)
+        if not filename:return
+        if not self.filename and not self.file_modified: # 如果是新建的
+            self.load(filename,binary=True)
+        else:self.new().load(filename,binary=True)
     def load(self,filename,binary=False):
         # 加载文件
-        if not filename.strip():
-            return
         self.isbinary=binary
         try:
             data=self._load_data(filename)
@@ -742,7 +754,8 @@ class Editor(Tk):
     def change_title(self):
         file = os.path.split(self.filename)[1] or "未命名"
         newtitle="PyNotepad - "+ file +\
-                  (" (二进制模式)" if self.isbinary else '')
+                  (" (二进制模式)" if self.isbinary else '') +\
+                  (" (%s)" % self.filename if self.filename else '')
         if self.file_modified:
             newtitle="*%s*"%newtitle
         self.title(newtitle)
@@ -754,6 +767,7 @@ class Editor(Tk):
                 if not self.colorobj:
                     self.colorobj=Percolator(self.contents)
                 self.colorobj.insertfilter(self._codefilter)
+                self.set_tag_bg()
             elif self.colorobj and self._codefilter.delegate:
                 self.colorobj.removefilter(self._codefilter)
     def ask_for_save(self,quit=True):
@@ -844,8 +858,8 @@ class Editor(Tk):
         self.drag_files=files
         self.after(50,self.onfiledrag2)
     def onfiledrag2(self):
-        if not self.contents.get('1.0',END).strip() and not self.file_modified:
-            self.open(self.drag_files[0].decode('ansi'))
+        if not self.filename and not self.file_modified: # 如果是新建的
+            self.load(self.drag_files[0].decode('ansi'))
             del self.drag_files[0]
         for item in self.drag_files:
             Editor(item.decode('ansi'))
