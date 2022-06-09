@@ -675,7 +675,7 @@ class Editor(Tk):
                             initialdir=os.path.split(self.filename)[0],
                             filetypes=self.FILETYPES)
         if not filename:return
-        if not self.filename and not self.file_modified:
+        if not self.filename and not self.file_modified: # 如果是刚新建的, 在当前窗口中打开
             self.load(filename)
         else:self.new().load(filename)
     def open_as_binary(self):
@@ -684,7 +684,7 @@ class Editor(Tk):
                             initialdir=os.path.split(self.filename)[0],
                             filetypes=self.FILETYPES)
         if not filename:return
-        if not self.filename and not self.file_modified: # 如果是新建的
+        if not self.filename and not self.file_modified: # 如果是刚新建的
             self.load(filename,binary=True)
         else:self.new().load(filename,binary=True)
     def load(self,filename,binary=False):
