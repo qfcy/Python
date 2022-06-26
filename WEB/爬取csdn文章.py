@@ -19,5 +19,8 @@ for css in re.findall(css_patt,text):
 
 content += re.findall(patt,text)[0]
 content += '</body></html>'
-with open('%s.html'%title,'w',encoding='utf-8') as f:
+
+# 去除文件名不能包含的特殊字符
+filename = '%s.html'%title.replace("(","").replace(")","").replace(":","")
+with open(filename,'w',encoding='utf-8') as f:
     f.write(content)
