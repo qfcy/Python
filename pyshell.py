@@ -16,7 +16,7 @@ __version__="1.3.3"
 def exec_code(code,line=0):
     # 执行代码
     try:
-##        result=eval(code,vars_) # 旧版:尝试使用exec或eval, eval是默认
+##        result=eval(code,vars_) # 旧版:尝试使用exec或eval, eval优先
 ##        builtins._ = result
 ##        if result is not None:print(repr(result))
 ##    except SyntaxError:
@@ -131,7 +131,7 @@ def main():
     lineno=1
     while True:
         try:
-            if sys.stdin.closed:
+            if getattr(sys.stdin,"closed",False): # 其他代码请求了退出Python
                 return
             code=input(">>> ")
 
