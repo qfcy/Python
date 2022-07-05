@@ -45,8 +45,13 @@ __version__="1.3.2";__doc__=__doc__%__version__ # 在__doc__中加入版本信�
 
 def view_hex(byte):
     result=''
+    if hasattr(bytes,'hex'):
+        conv_hex = bytes.hex
+    else: # 低于Python 3.5(如3.4版), 没有bytes.hex内置方法
+        conv_hex = lambda b:hex(int.from_bytes(b,'big'))[2:]\
+                           .zfill(len(b)*2)
     for i in range(0,len(byte)):
-        result+= byte[i:i+1].hex().zfill(2) + ' '
+        result+= conv_hex(byte[i:i+1]).zfill(2) + ' '
         if (i+1) % 4 == 0:result+='\n'
     return result
 
