@@ -87,7 +87,7 @@ def ask_for_exit(console=None):
         return ask_for_exit(console)
 
 def enter_command(console=None):
-    inputfunc=getattr(console,"input",__builtins__.input)
+    inputfunc=getattr(console,"input",input)
     cmd = inputfunc('Enter command (? for help): ')
     return cmd.strip().lower()
 
