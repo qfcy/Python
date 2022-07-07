@@ -40,8 +40,8 @@ try:import chardet
 except ImportError:chardet=None
 
 __email__="3416445406@qq.com"
-__author__="七分诚意 qq:3076711200 邮箱:%s"%__email__
-__version__="1.3.2";__doc__=__doc__%__version__ # 在__doc__中加入版本信息
+__author__="qfcy qq:3076711200 邮箱:%s"%__email__
+__version__="1.3.3";__doc__=__doc__%__version__ # 在__doc__中加入版本信息
 
 def view_hex(byte):
     result=''
@@ -143,11 +143,12 @@ class SearchDialog(Toplevel):
             except re.error as err:
                 handle(err,parent=self);return
         # 默认从当前光标位置开始查找
-        pos=text.search(key,INSERT,END,
+        pos=text.search(key,INSERT,'end-1c',# end-1c:忽略末尾换行符
                         regexp=self.use_regexpr.get(),
                         nocase=not self.match_case.get())
         if not pos:
-            pos=text.search(key,'1.0',END, # 尝试从开头循环查找
+            # 尝试从开头循环查找
+            pos=text.search(key,'1.0','end-1c',
                         regexp=self.use_regexpr.get(),
                         nocase=not self.match_case.get())
         if pos:
@@ -837,6 +838,7 @@ class Editor(Tk):
         msgbox.showinfo("关于",__doc__+"\n作者: "+__author__,parent=self)
     def feedback(self):
         webbrowser.open("https://blog.csdn.net/qfcy_/article/details/118399185")
+        msgbox.showinfo('',"如有反馈, 请在原文中填写评论, 谢谢。")
 
     def loadconfig(self):
         try:
