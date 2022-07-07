@@ -1,7 +1,5 @@
 import socket,os,time
-
-from multiprocessing import Process
-
+from concurrent.futures import ThreadPoolExecutor
 
 def handle_client(client_socket):
     """
@@ -12,7 +10,13 @@ def handle_client(client_socket):
     # 构造响应数据
     response_start_line = "HTTP/1.1 200 OK\r\n"
     response_headers = "Server: PyServer\r\n"
-    response_body = "<h1>Python HTTP Test</h1>"
+    response_body = """<html><head>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+</head>
+<body><h1>Python HTTP Test</h1>"""
+    if b"Trident" in request_data:
+        response_body += "<p>IE 浏览器</p>"
+    response_body += "</body></html>"
     response = response_start_line + response_headers + "\r\n" + response_body
 
     # 向客户端返回响应数据
@@ -26,15 +30,11 @@ if __name__ == "__main__":
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind(("", 8000))
     server_socket.listen(128)
-    import webbrowser, subprocess
-    exe = os.getenv('LOCALAPPDATA') +\
-    r'\Google\Chrome\Application\chrome.exe -no-sandbox -- http://127.0.0.1:8000/'
-    subprocess.Popen(exe,cwd=os.path.dirname(exe.split()[0]))
-
-    while True:
-        client_socket, client_address = server_socket.accept()
-        print("[%s, %s]用户连接上了" % client_address)
-        handle_client_process = Process(target=handle_client, args=(client_socket,))
-        handle_client_process.start()
-        client_socket.close()
-
+    import webbrowser
+    webbrowser.open('http://127.0.0.1:8000/')
+    with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+        while True:
+            client_socket, client_address = server_socket.accept()
+            print("[%s, %s]用户连接上了" % client_address)
+            executor.submit(handle_client, client_socket)
+    client_socket.close()
