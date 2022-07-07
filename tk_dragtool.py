@@ -109,7 +109,7 @@ def bind_drag(tkwidget,dragger,x=True,y=True):
     """绑定拖曳事件。
 tkwidget: 被拖动的控件或窗口,
 dragger: 接收鼠标事件的控件,
-调用bind_drag后,当鼠标在dragger上拖动时, tkwidget会被拖动, 但dragger
+调用bind_drag后,当鼠标拖动dragger时, tkwidget会被带着拖动, 但dragger
 作为接收鼠标事件的控件, 位置不会改变。
 x 和 y: 同draggable()函数。"""
     dragger.bind("<Button-1>",_mousedown,add='+')
