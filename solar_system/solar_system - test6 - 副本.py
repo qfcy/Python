@@ -40,13 +40,13 @@ EARTH_MASS=4000
 MOON_MASS=30
 MARS_MASS=600
 PHOBOS_MASS=2
-AST_MASS=10000
+AST_MASS=20000
 
 JUPITER_MASS=7000
 SATURN_MASS=6000
 URANUS_MASS=9000
 NEPTUNE_MASS=8000
-SPACECRAFT_MASS = 20000
+SPACECRAFT_MASS = 10000
 
 scr=None
 
@@ -60,7 +60,7 @@ class GravSys:
         self.planets = []
         self.removed_planets=[]
         self.t = 0
-        self.dt = 0.001 # 速度
+        self.dt = 0.0008 # 速度
         #speed: 程序在绘制一帧之前执行计算的次数
         self.speed=12
         self.scale=1
@@ -88,6 +88,10 @@ class GravSys:
                     p.acc()
                 for p in self.planets:
                     p.step()
+                for p in self.planets:
+                    p.check_collision()
+                for p in self.planets:
+                    p.ax=p.ay=0
             if self.following!=None:
                 self.scr_x=-self.following.x+self.key_x
                 self.scr_y=-self.following.y+self.key_y
@@ -131,9 +135,9 @@ class GravSys:
         planet.onfollow(True)
         scr.ontimer(self.clear_scr, int(1000/self.fps))
     def increase_speed(self,event):
-        self.dt+=0.0005
+        self.dt+=0.0002
     def decrease_speed(self,event):
-        self.dt-=0.0005
+        self.dt-=0.0002
     def zoom(self,event):
         if event.keysym=="equal":
             # 放大
@@ -270,23 +274,24 @@ class Star(Turtle):
     def init(self):
         if self.has_orbit:
             self.pendown()
+        self.ax=self.ay=0
     def acc(self):
         # ** 计算行星的引力、加速度 **
-        ax=ay=0
-        for planet in self.gravSys.planets:
-            if planet is not self:
-                dx=planet.x-self.x
-                dy=planet.y-self.y
-                try:
-                    b = G * planet.m / math.hypot(dx,dy)**3
-                    ax+=b * dx
-                    ay+=b * dy
-                except ZeroDivisionError:pass
-        self.ax,self.ay=ax,ay
-    def check_collision(self):
         index=self.gravSys.planets.index(self)
         for i in range(index+1,len(self.gravSys.planets)):
             planet=self.gravSys.planets[i]
+            dx=planet.x-self.x
+            dy=planet.y-self.y
+            try:
+                b = G * self.m / math.hypot(dx,dy)**3
+                self.ax+=b * dx
+                self.ay+=b * dy
+                planet.ax-=b * dx
+                planet.ay-=b * dy
+            except ZeroDivisionError:pass
+    def check_collision(self):
+        for planet in self.gravSys.planets:
+            if planet is self:continue
             if self.hit(planet):
                 m1=self.m;m2=planet.m
                 adx=(self.dx+planet.dx)/2
@@ -304,16 +309,6 @@ class Star(Turtle):
                 dx=planet.x-self.x;dy=planet.y-self.y
                 dis=math.hypot(dx,dy)
                 newdis=(self._size + planet._size) * PLANET_SIZE
-                #self.x=planet.x-dx*newdis/dis
-                #self.y=planet.y-dy*newdis/dis
-##                self.x=planet.x-(dx*newdis/dis+dx)\
-##                        *planet.m/(self.m+planet.m) # /2
-##                self.y=planet.y-(dy*newdis/dis+dy)\
-##                        *planet.m/(self.m+planet.m)
-##                planet.x=self.x+(dx*newdis/dis+dx)\
-##                        *self.m/(self.m+planet.m)
-##                planet.y=self.y+(dy*newdis/dis+dy)\
-##                        *self.m/(self.m+planet.m)
                 self.x=planet.x-(dx*newdis/dis+dx)/2
                 self.y=planet.y-(dy*newdis/dis+dy)/2
                 planet.x=self.x+(dx*newdis/dis+dx)/2
@@ -324,7 +319,6 @@ class Star(Turtle):
         self.x+= dt*self.dx
         self.y+= dt*self.dy
 
-        self.check_collision()
         self.dx += dt*self.ax
         self.dy += dt*self.ay
     def update(self):
@@ -478,7 +472,17 @@ class Sun(Star):
     def __init__(self,*args,**kw):
         Star.__init__(self,*args,**kw)
         self.keep_on_scr=True
-    def acc(self):return 0,0
+    def acc(self):
+        index=self.gravSys.planets.index(self)
+        for i in range(1,len(self.gravSys.planets)):
+            planet=self.gravSys.planets[i]
+            dx=planet.x-self.x
+            dy=planet.y-self.y
+            try:
+                b = G * self.m / math.hypot(dx,dy)**3
+                planet.ax-=b * dx
+                planet.ay-=b * dy
+            except ZeroDivisionError:pass
     def update(self):
         self.setpos((self.x+self.gravSys.scr_x)*self.gravSys.scale,
                     (self.y+self.gravSys.scr_y)*self.gravSys.scale)
@@ -488,7 +492,7 @@ class Sun(Star):
 class SpaceCraft(Star):
     flag=False;id=0
     def __init__(self, gravSys, m, x, v,
-                 shapesize=0.5,has_orbit=True,
+                 shapesize=2,has_orbit=True,
                  parent=None,keep_on_scr=False,rotation=None):
         SpaceCraft.id+=1
         Star.__init__(self, gravSys, 'craft #%d' % SpaceCraft.id,

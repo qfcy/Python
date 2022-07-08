@@ -11,6 +11,7 @@
 
 1.2.6版更新: 增加了跟踪飞船, 即可控制飞船功能。
 1.3.1版: 增加使用Tab, Shift+Tab键切换行星功能。
+1.3.2版: 增加使用pickle模块保存天体数据、及删除天体功能。
 """
 try:
     from time import perf_counter
@@ -26,7 +27,7 @@ except ImportError:
 
 __author__="七分诚意 qq:3076711200"
 __email__="3416445406@qq.com"
-__version__="1.3.1"
+__version__="1.3.2"
 
 G = 8
 PLANET_SIZE=8 # 像素
@@ -133,6 +134,11 @@ class GravSys:
         self.key_x=self.key_y=0
         planet.onfollow(True)
         scr.ontimer(self.clear_scr, int(1000/self.fps))
+    def remove(self,planet): # 移除天体
+        self.removed_planets.append(planet)
+        self.planets.remove(planet)
+        planet._size = 1e-323 # 接近0
+        planet.hideturtle()
     def increase_speed(self,event):
         self.dt+=0.0004
     def decrease_speed(self,event):
@@ -253,8 +259,13 @@ class GravSys:
         self.follow(self.planets[index])
     def switch(self,event=None):
         self._switch(1)
-    def reverse_switch(self,event):
+    def reverse_switch(self,event=None):
         self._switch(-1)
+    def del_planet(self,event=None):
+        if self.following in self.planets:# if self.following:
+            self.remove(self.following)
+            if self.following.parent:
+                self.follow(self.following.parent)
     # 以下函数用于pickle保存状态功能
     def __new__(cls): # 避免pickle中引发AttributeError
         o=super().__new__(cls)
@@ -316,13 +327,14 @@ class Star(Turtle):
         if parent:
             parent.children.append(self)
     def init(self):
+        self.update()
         if self.has_orbit:
             self.pendown()
         self.ax=self.ay=0
     def acc(self):
         # ** 计算行星的引力、加速度 **
         index=self.gravSys.planets.index(self)
-        for i in range(index,len(self.gravSys.planets)):
+        for i in range(index+1,len(self.gravSys.planets)):
             planet=self.gravSys.planets[i]
             dx=planet.x-self.x
             dy=planet.y-self.y
@@ -354,10 +366,8 @@ class Star(Turtle):
             self.left(self.rotation*self.gravSys.dt)
         elif self.sun:
             self.setheading(self.towards(self.sun))
-        if abs(self.x)>14000 or abs(self.y)>14000:
-            self.gravSys.removed_planets.append(self)
-            self.gravSys.planets.remove(self)
-            self.hideturtle()
+        #if abs(self.x)>14000 or abs(self.y)>14000:
+        #    self.gravSys.remove(self) 清除已飞出太阳系的天体
     def getsize(self): # 返回行星的显示大小
         return self._stretchfactor[0]*PLANET_SIZE*2
     def distance(self,other):
@@ -665,6 +675,7 @@ def main():
     cv.bind_all("<Key-equal>",gs.increase_speed)
     cv.bind_all("<Key-minus>",gs.decrease_speed)
     cv.bind_all("<Key-Tab>",gs.switch)
+    cv.bind_all("<Key-Delete>",gs.del_planet)
     cv.bind_all("<Shift-Key-Tab>",gs.reverse_switch)
     cv.bind_all("<Control-Key-equal>",gs.zoom) #Ctrl+"+"
     cv.bind_all("<Control-Key-minus>",gs.zoom) #Ctrl+"-"
