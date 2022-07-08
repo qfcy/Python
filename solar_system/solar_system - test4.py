@@ -372,13 +372,12 @@ def main():
     cv.bind_all("<Control-Key-minus>",gs.zoom) #Ctrl+"-"
     #scr.tracer(1,0)
     
-
+    globals().update(locals())
     scr.onclick(gs.switchpen)
     #gs.follow(earth)
     gs.init()
     try:gs.start()
     except (Terminator,TclError):pass
-    globals().update(locals())
     _plot()
 
 def _plot():
