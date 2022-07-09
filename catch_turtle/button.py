@@ -1,6 +1,5 @@
-﻿"""使用turtle模块绘制按钮的模块。
+"""使用turtle模块绘制按钮的模块。
 七分诚意制作   2019.4.24"""
-import math,random
 from turtle import *
 class Button():
     "turtle绘制出的按钮类"
