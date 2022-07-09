@@ -1,4 +1,4 @@
-﻿"catch_turtle游戏主模块。"
+"catch_turtle游戏主模块。"
 import time,os,sys
 from turtle import *
 from random import randrange
@@ -8,10 +8,7 @@ except ImportError:
     import catch_turtle.turtles as turtles
 
 CFGFILENAME="cfg.cfg"
-CFGFILEPATHS=sys.path[1]+"\\"+CFGFILENAME,CFGFILENAME
 HELPFILE="README.txt"
-
-os.chdir(os.path.split(__file__)[0])
 
 class Enemy(Turtle):
     "游戏中敌人的类"
@@ -41,13 +38,13 @@ class Player(Turtle):
         self.goto(0,60)#游戏开始时,移动海龟至初始位置
         turtles.bind(scr,self,CFG["ps"])
     def win(self):
-        "判断玩家是否已赢"
+        "判断玩家是否已得分"
         won=turtles.catches(self,c)
         if won:
             self.ani()
         return won
     def ani(self):
-        "加分时显示动画"
+        "得分时显示动画"
         goto(self.xcor(),self.ycor())
         color("red")
         write("+10",font=("黑体",20))
@@ -80,25 +77,27 @@ class ScoreBoard():
         self.fontsize=15
         self.score=0
         self.show(self.score)
-    def __ready(self,score):
+    def __ready(self):
         "使海龟移动到记分板处,准备记录分数"
-        undo()#清除前一次绘制的文本
         pu()
         goto(window_width()/2-self.fontsize*7,window_height()/2-self.fontsize*6)
         color("black")
+        delay(0)
+        clear()#清除前一次绘制的文本
     def show(self,score):
-        self.__ready(score)
+        self.__ready()
         text="分数 "+str(score)+"\n最高分 "+str(CFG["s"])+"\n等级 "+str(CFG["l"])
         write(text,align="left",font=("黑体",self.fontsize))
         self.score=score
-        delay(0)
+    def reset(self): # 清除记分板文字(备用)
+        clear()
 
 class Config(dict):
 ##    配置字典释义
 ##    e:敌人数量
 ##    cs:被追逐者移动速度
 ##    ps:玩家移动速度
-##    dc:玩家分身与玩家的最大距离
+##    dc:玩家分身与玩家的距离范围
 ##    a:是否在游戏主页中显示动画
 ##    s:历史最高分
 ##    l:玩家等级
@@ -114,13 +113,11 @@ class Config(dict):
             if len(text)>1:self[text[0]]=eval(text[1])
     def write(self):
         try:
-            self.cfgfile=open(CFGFILENAME,'w')
-            for key in self.keys():
-                self.cfgfile.write("{}:{}\n".format(key,bin(self[key])))
+            with open(CFGFILENAME,'w') as f:
+                for key in self.keys():
+                    f.write("{}:{}\n".format(key,bin(self[key])))
         except OSError as err:
             print(type(err).__name__+': '+str(err))
-    def close(self):
-        self.cfgfile.close()
 
 class GameError(FileNotFoundError):
     "一个异常类,在游戏发生错误(如找不到配置文件时),会被raise"
@@ -130,7 +127,7 @@ class GameError(FileNotFoundError):
 def createturtles(num,_class):
     "出现一些游戏角色,个数为num。"
     t=[None]*num
-    delay(1)#使游戏角色慢速出场
+    delay(1)# 第一个角色慢速出场
     for n in range(num):
         t[n]=_class()
         t[n].startgame()
@@ -163,16 +160,29 @@ def draw_button(again_text):
     scr.onclick(onclick)
     return buttons
 
-def reset():
+def reset():# 切换界面时清屏
     if players:#如果有分身
         for player in players:
             player.hideturtle()
-    turtles.reset()
+    clear() # 清除分数
 
 #----------------------------游戏主代码由此开始---------------------------------
 
+#获取程序路径
+try:
+    APP_PATH = os.path.split(__file__)[0]
+    if not os.path.isdir(APP_PATH):
+        raise OSError
+except OSError:
+    if os.path.isdir(sys.path[0]):
+        APP_PATH = sys.path[0]
+        os.chdir(APP_PATH)
+    else:raise GameError("无法初始化程序路径")
+os.chdir(APP_PATH)
 #读取配置文件
 CFG=None
+CFGFILEPATHS=[APP_PATH+"\\"+CFGFILENAME,] + \
+    [path+"\\"+CFGFILENAME for path in sys.path]
 for filename in CFGFILEPATHS:
     if os.path.isfile(filename):
         CFG=Config(filename)
@@ -301,7 +311,7 @@ def info():
         from tkinter import messagebox as msgbox
         msgbox.showinfo("错误","找不到游戏帮助文件")
         _back()
-    goto(-280,-150)
+    goto(-330,-150)
     write(f.read(),True,font=("微软雅黑",14))#读取文件,并显示文件内容
     
     #玩家
@@ -335,24 +345,25 @@ def _main(create=True):
     def setscore():
         "追到海龟后设置分数、等级"
         global score,running
-        CFG.write()
-        #print(score)
         score+=10
         if CFG["s"]<score:
             CFG["s"]=score
         if score % CFG["spl"]==0:
             CFG["l"]+=1
-            CFG.write()
+            CFG.write() # 得分后才重写配置文件
+            if CFG["l"]>2: # 在当前游戏中创建新分身
+                players.append(ClonedPlayer())
             running=False
             win()
             return "WIN"
         else:
+            CFG.write()
             #使被追逐者移回原位,开始下一次追逐
             c.home()
     def run():
         global score
         for n in range(CFG["e"]):
-            if enemies[n].run() == "FAIL": #使敌人"活动"
+            if enemies[n].run() == "FAIL": #run(): 使敌人"活动"
                 fail()
                 return "FAIL"
         turtles.move(c,CFG["cs"])
@@ -363,17 +374,15 @@ def _main(create=True):
             for player in players:
                 player.run()
                 if player.win():
-                    #win()
-                    return setscore()
+                    return setscore()#win()
                     
         board.show(score)#显示分数
     
-    global scr,running,board,enemies,players,app_path
+    global scr,running,board,enemies,players
     turtles._undo(2)
     scr.bgcolor("black")
     try:
-        app_path=os.path.split(__file__)[0]#获取程序路径
-        scr.bgpic(app_path+"/图片/草地.gif")#加载图片
+        scr.bgpic(APP_PATH+"\\图片\\草地.gif")#加载图片
     except:pass#忽略错误
     
     goto(-50,-150)
@@ -400,16 +409,13 @@ def _main(create=True):
     board=ScoreBoard()
     running=True
     
-    while True:
-        try:
-            result = run()
-            if result == "FAIL" or result == "WIN":
-                #print(result)
-                if result=="WIN":
-                    setscore()
-                break
-        finally:
-            CFG.close()#出现错误时关闭配置文件
+    while True: # 游戏主事件循环
+        result = run()
+        #print(result)
+        if result == "FAIL" or result == "WIN":
+            if result=="WIN":
+                setscore()
+            break
     
     #游戏结束时,重置所有敌人
     for enemy in enemies:
@@ -420,7 +426,7 @@ def fail():
     "游戏失败时调用该函数。"
     global board,score,scr
     scr.onclick(None)
-    scr.bgpic(app_path+"\图片\草地2.gif")
+    scr.bgpic(APP_PATH+"\\图片\\草地2.gif")
     score=0#失败后分数清零
     board.show(score)
     pu()

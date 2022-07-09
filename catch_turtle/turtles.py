@@ -1,4 +1,4 @@
-﻿"游戏追逐海龟中的一些基本函数"
+"游戏追逐海龟中的一些基本函数"
 import random,time
 from turtle import *
 
@@ -13,9 +13,6 @@ def moveturtles(a,b,catch=True):
     if mov:
         move(b)
     if mov and catch:
-        l=25
-        xcatch=a.xcor()-b.xcor()>-l and a.xcor()-b.xcor()<l
-        ycatch=a.ycor()-b.ycor()>-l and a.ycor()-b.ycor()<l
         if catches(a,b) and mov:#判断海龟是否碰撞
             a.write("CATCH!",True,align="right",font=("黑体",14))#绘制文本
             a.clone()#复制海龟箭头
@@ -73,12 +70,6 @@ def _undo(mintimes=0,x=0,y=0):
         undo()
         delay(0)
 
-def reset():
-    "切换界面时清屏"
-    clear()
-    home()
-
-
 def __move(a,b):
     while mov:
         moveturtles(a,b)#一直移动海龟
@@ -99,6 +90,7 @@ def main():
     scr.onclick(__onclick)
     
     bind(scr,a,10)
+    scr.onkey(reset,"r")
     delay(5)
     __move(a,b)
     scr.mainloop()
