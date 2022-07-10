@@ -272,7 +272,7 @@ class GravSys:
         o.__init__()
         return o
     def __getstate__(self):
-        keys = ['planets',  't', 'dt', 'speed','scale', 'scr_x', 'scr_y',
+        keys = ['t', 'dt', 'speed','scale', 'scr_x', 'scr_y',
                'key_x', 'key_y','show_tip']
         config = {}
         for key in keys:
