@@ -134,6 +134,11 @@ class GravSys:
         self.key_x=self.key_y=0
         planet.onfollow(True)
         scr.ontimer(self.clear_scr, int(1000/self.fps))
+    def remove(self,planet): # 移除天体
+        self.removed_planets.append(planet)
+        self.planets.remove(planet)
+        planet._size = 1e-323 # 接近0
+        planet.hideturtle()
     def increase_speed(self,event):
         self.dt+=0.0002
     def decrease_speed(self,event):
@@ -196,24 +201,6 @@ class GravSys:
         for planet in self.removed_planets:
             planet.clear()
         self.removed_planets=[]
-    def switchpen(self,x,y):
-        targets=[]
-        for planet in self.planets:
-            psize=max(planet.getsize()*1.375, 2)
-            if abs(planet.xcor()-x) <= psize \
-               and abs(planet.ycor()-y) <= psize \
-               and planet is not self.following:
-                targets.append(planet)
-
-            if not planet.has_orbit:
-                continue
-            if planet.isdown():
-                planet.penup()
-            else:planet.pendown()
-            planet.clear()
-
-        if targets:self.follow(max(targets,key=lambda p:p.m))
-        self.clear_removed_planets()
     def onclick(self,event):
         x, y = (scr.cv.canvasx(event.x)/scr.xscale,
                 -scr.cv.canvasy(event.y)/scr.yscale)
@@ -238,6 +225,25 @@ class GravSys:
         craft=SpaceCraft(self,SPACECRAFT_MASS,x_,v,parent=self.following,
                          has_orbit=False)
         craft.penup()
+    def _switch(self,dt):
+        # 切换到上/下一个行星
+        if not self.planets:return # 空列表
+        if self.following==None or self.following not in self.planets:
+            index=0
+        else:
+            index=self.planets.index(self.following)+dt
+            if index < 0 or index>=len(self.planets): # !!
+                index = index % len(self.planets) # 控制index的范围
+        self.follow(self.planets[index])
+    def switch(self,event=None):
+        self._switch(1)
+    def reverse_switch(self,event=None):
+        self._switch(-1)
+    def del_planet(self,event=None):
+        if self.following in self.planets:# if self.following:
+            self.remove(self.following)
+            if self.following.parent:
+                self.follow(self.following.parent)
 
 class Star(Turtle):
     _light=_dark=_circle=None
@@ -445,6 +451,7 @@ class RoundStar(Star):
         if self._id is not None:
             self.screen._delete(self._id)
 
+        if not self._shown:return # 若已经隐藏
         size=self.getsize()
         if size>0.04:
             px=3 if size>0.2 else 2
@@ -561,6 +568,9 @@ def main():
     cv.bind_all("<Key-Right>",gs.right)
     cv.bind_all("<Key-equal>",gs.increase_speed)
     cv.bind_all("<Key-minus>",gs.decrease_speed)
+    cv.bind_all("<Key-Tab>",gs.switch)
+    cv.bind_all("<Key-Delete>",gs.del_planet)
+    cv.bind_all("<Shift-Key-Tab>",gs.reverse_switch)
     cv.bind_all("<Control-Key-equal>",gs.zoom) #Ctrl+"+"
     cv.bind_all("<Control-Key-minus>",gs.zoom) #Ctrl+"-"
     cv.bind_all("<Control-Key-h>",lambda event:gs.follow(sun))

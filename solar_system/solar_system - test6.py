@@ -138,6 +138,11 @@ class GravSys:
         self.key_x=self.key_y=0
         planet.onfollow(True)
         scr.ontimer(self.clear_scr, int(1000/self.fps))
+    def remove(self,planet): # 移除天体
+        self.removed_planets.append(planet)
+        self.planets.remove(planet)
+        planet._size = 1e-323 # 接近0
+        planet.hideturtle()
     def increase_speed(self,event):
         self.dt+=0.00004
     def decrease_speed(self,event):
@@ -223,6 +228,25 @@ class GravSys:
 
         craft=SpaceCraft(self,SPACECRAFT_MASS,x_,v,parent=self.following)
         craft.penup()
+    def _switch(self,dt):
+        # 切换到上/下一个行星
+        if not self.planets:return # 空列表
+        if self.following==None or self.following not in self.planets:
+            index=0
+        else:
+            index=self.planets.index(self.following)+dt
+            if index < 0 or index>=len(self.planets): # !!
+                index = index % len(self.planets) # 控制index的范围
+        self.follow(self.planets[index])
+    def switch(self,event=None):
+        self._switch(1)
+    def reverse_switch(self,event=None):
+        self._switch(-1)
+    def del_planet(self,event=None):
+        if self.following in self.planets:# if self.following:
+            self.remove(self.following)
+            if self.following.parent:
+                self.follow(self.following.parent)
 
 class Star(Turtle):
     _light=_dark=_circle=None
@@ -435,6 +459,7 @@ class RoundStar(Star):
         if self._id is not None:
             self.screen._delete(self._id)
 
+        if not self._shown:return # 若已经隐藏
         size=self.getsize()
         if size>0.04:
             px=3 if size>0.2 else 2
@@ -455,6 +480,33 @@ class RoundStar(Star):
             color = self._colorstr(color)
         item = self.screen._dot(self._position, size, color)
         return item
+
+class Sun(Star):
+    # 太阳不移动, 固定在引力系统的中心
+    def __init__(self,*args,**kw):
+        Star.__init__(self,*args,**kw)
+        self.keep_on_scr=True
+    def step(self):
+        self.x=self.y=self.dx=self.dy=0
+    def check_collision(self):
+        super().check_collision()
+        self.step()
+    def update(self):
+        self.setpos((self.x+self.gravSys.scr_x)*self.gravSys.scale,
+                    (self.y+self.gravSys.scr_y)*self.gravSys.scale)
+        if self.rotation is not None:
+            self.left(self.rotation*self.gravSys.dt)
+    def acc(self):
+        index=self.gravSys.planets.index(self)
+        for i in range(1,len(self.gravSys.planets)):
+            planet=self.gravSys.planets[i]
+            dx=planet.x-self.x
+            dy=planet.y-self.y
+            try:
+                b = G * self.m / math.hypot(dx,dy)**3
+                planet.ax-=b * dx
+                planet.ay-=b * dy
+            except ZeroDivisionError:pass
 
 class SpaceCraft(Star):
     flag=False;id=0
@@ -493,33 +545,6 @@ class SpaceCraft(Star):
             else:dx=dy=0
             angle = math.atan2(self.dy - dy,self.dx - dx) * 180 / math.pi + 90
             self.setheading(angle)
-
-class Sun(Star):
-    # 太阳不移动, 固定在引力系统的中心
-    def __init__(self,*args,**kw):
-        Star.__init__(self,*args,**kw)
-        self.keep_on_scr=True
-    def step(self):
-        self.x=self.y=self.dx=self.dy=0
-    def check_collision(self):
-        super().check_collision()
-        self.step()
-    def update(self):
-        self.setpos((self.x+self.gravSys.scr_x)*self.gravSys.scale,
-                    (self.y+self.gravSys.scr_y)*self.gravSys.scale)
-        if self.rotation is not None:
-            self.left(self.rotation*self.gravSys.dt)
-    def acc(self):
-        index=self.gravSys.planets.index(self)
-        for i in range(1,len(self.gravSys.planets)):
-            planet=self.gravSys.planets[i]
-            dx=planet.x-self.x
-            dy=planet.y-self.y
-            try:
-                b = G * self.m / math.hypot(dx,dy)**3
-                planet.ax-=b * dx
-                planet.ay-=b * dy
-            except ZeroDivisionError:pass
 
 def main():
     global scr
@@ -567,6 +592,9 @@ def main():
     cv.bind_all("<Key-Right>",gs.right)
     cv.bind_all("<Key-equal>",gs.increase_speed)
     cv.bind_all("<Key-minus>",gs.decrease_speed)
+    cv.bind_all("<Key-Tab>",gs.switch)
+    cv.bind_all("<Key-Delete>",gs.del_planet)
+    cv.bind_all("<Shift-Key-Tab>",gs.reverse_switch)
     cv.bind_all("<Control-Key-equal>",gs.zoom) #Ctrl+"+"
     cv.bind_all("<Control-Key-minus>",gs.zoom) #Ctrl+"-"
     cv.bind_all("<Control-Key-h>",lambda event:gs.follow(sun))
