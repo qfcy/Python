@@ -21,6 +21,7 @@ content += re.findall(patt,text)[0]
 content += '</body></html>'
 
 # 去除文件名不能包含的特殊字符
-filename = '%s.html'%title.replace("(","").replace(")","").replace(":","")
+tbl = str.maketrans('','','\\/:*?"<>|')
+filename = '%s.html'%title.translate(tbl)
 with open(filename,'w',encoding='utf-8') as f:
     f.write(content)
