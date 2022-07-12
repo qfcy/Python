@@ -2,7 +2,22 @@ import time,sys
 import pyWinhook as pyHook
 import pythoncom
 
-def timer():
+MOUSE_ACCURACY = 5 # 鼠标精确度, 单位像素
+last_pos = None
+def _check_accuracy(new_pos): # 检测鼠标精确度
+    global last_pos
+    if last_pos is None:
+        last_pos = new_pos
+        return True
+    last_x,last_y = last_pos
+    new_x,new_y = new_pos
+    if abs(last_x - new_x) > MOUSE_ACCURACY or \
+       abs(last_y - new_y) > MOUSE_ACCURACY:
+        last_pos = new_pos
+        return True
+    else:
+        return False
+def _timer(): # 用于计时, 打印time.sleep代码
     global last_time
     # 0.001秒: 用于补偿调用API函数消耗的时间
     tm=time.perf_counter()-last_time-0.001
@@ -10,8 +25,9 @@ def timer():
         print('time.sleep(%f)'%tm)
     last_time = time.perf_counter()
 
+
 def left_down(event):
-    timer()
+    _timer()
     print('mouse.leftdown()')
     sys.stdout.flush()
     # return True to pass the event to other handlers
@@ -19,52 +35,53 @@ def left_down(event):
     return True
 
 def middle_down(event):
-    timer()
+    _timer()
     print('mouse.middledown()')
     sys.stdout.flush()
     return True
 def right_down(event):
-    timer()
+    _timer()
     print('mouse.rightdown()')
     sys.stdout.flush()
     return True
 
 def left_up(event):
-    timer()
+    _timer()
     print('mouse.leftup()')
     sys.stdout.flush()
     return True
 def middle_up(event):
-    timer()
+    _timer()
     print('mouse.middleup()')
     sys.stdout.flush()
     return True
 def right_up(event):
-    timer()
+    _timer()
     print('mouse.rightup()')
     sys.stdout.flush()
     return True
 
 def mouse_move(event):
-    timer()
-    print('mouse.move(%d, %d)'%event.Position)
+    if _check_accuracy(event.Position):
+        _timer()
+        print('mouse.move(%d, %d)'%event.Position)
     sys.stdout.flush()
     return True
 
 def mouse_wheel(event):
-    timer()
+    _timer()
     print('mouse.wheel(%d*mouse.WHEEL_DELTA)'%event.Wheel)
     sys.stdout.flush()
     return True
 
 def key_down(event):
-    timer()
-    print('key.down(%d)'%event.Ascii)
+    _timer()
+    print('key.down(%s)'%repr(event.Key))
     sys.stdout.flush()
     return True
 def key_up(event):
-    timer()
-    print('key.up(%d)'%event.Ascii)
+    _timer()
+    print('key.up(%s)'%repr(event.Key))
     sys.stdout.flush()
     return True
 
