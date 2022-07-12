@@ -17,7 +17,7 @@ def OnMouseEvent(event):
     return True
 
 def SimpleMouseEv(event):
-    print("鼠标事件 %s:(%d, %d)" % (event.MessageName,)+event.Position)
+    print("鼠标事件 %s:(%d, %d)" % ((event.MessageName,)+event.Position))
     print('时间: %s' % time.asctime())
     print('窗口: %s' % event.WindowName)
     print('---')
@@ -42,8 +42,14 @@ def OnKeyEvent(event):
 
 def SimpleKeyEv(event):
     print("键盘事件: %s (ascii: %d %s)"%(event.Key,
-                                     event.Ascii,chr(event.Ascii)))
+                                     event.Ascii,chr(event.Ascii)),file=sys.stderr)
     print('---')
+    sys.stdout.flush()
+    return True
+
+def SimpleKeyUpEv(event):
+    print("键盘弹起: %s (ascii: %d %s)"%(event.Key,
+                                     event.Ascii,chr(event.Ascii)),file=sys.stderr)
     sys.stdout.flush()
     return True
 
@@ -56,6 +62,7 @@ def main():
     hm.MouseAllButtonsDown = OnMouseEvent
     hm.MouseWheel = SimpleMouseEv
     hm.KeyDown = SimpleKeyEv
+    hm.KeyUp = SimpleKeyUpEv
 
     # hook into the mouse and keyboard events
     hm.HookMouse()
@@ -63,4 +70,3 @@ def main():
     pythoncom.PumpMessages()
 
 if __name__ == '__main__':main()
-    
