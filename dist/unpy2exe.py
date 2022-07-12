@@ -17,7 +17,6 @@ IGNORE = [
     'boot_common.py.pyc',  # boot_common added by py2exe
 ]
 
-IGNORE = []
 def __build_magic(magic):
     """Build Python magic number for pyc header."""
     return struct.pack(b'Hcc', magic, b'\r', b'\n')
