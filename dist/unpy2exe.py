@@ -17,7 +17,7 @@ IGNORE = [
     'boot_common.py.pyc',  # boot_common added by py2exe
 ]
 
-
+IGNORE = []
 def __build_magic(magic):
     """Build Python magic number for pyc header."""
     return struct.pack(b'Hcc', magic, b'\r', b'\n')
@@ -46,6 +46,7 @@ PYTHON_MAGIC_WORDS = {
     '3.8': __build_magic(3400),
 }
 
+FILENAME_TRANS = str.maketrans('','','\\/:*?"<>|')
 
 def __timestamp():
     """Generate timestamp data for pyc header."""
@@ -156,6 +157,8 @@ def dump_to_pyc(co, python_version, output_dir):
         logging.info("Extracting %s", pyc_name)
         pyc_header = _generate_pyc_header(python_version, len(co.co_code))
         destination = os.path.join(output_dir, pyc_name)
+        # 去除文件名不能包含的特殊字符
+        destination = destination.translate(FILENAME_TRANS)
         pyc = open(destination, 'wb')
         pyc.write(pyc_header)
         marshaled_code = marshal.dumps(co)
