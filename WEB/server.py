@@ -6,7 +6,7 @@ def handle_client(client_socket):
     处理客户端请求
     """
     request_data = client_socket.recv(1024)
-    print("request data:", request_data)
+    print("请求数据:", request_data.decode())
     # 构造响应数据
     response_start_line = "HTTP/1.1 200 OK\r\n"
     response_headers = "Server: PyServer\r\n"
