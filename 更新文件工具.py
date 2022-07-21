@@ -15,7 +15,7 @@ def copy2(src,dst):
         os.makedirs(os.path.split(dst)[0],exist_ok=True)
     shutil.copy2(src,dst)
 
-def read_ig(ignore_listfile): # 读取忽略文件列表
+def read_ig(ignore_listfile): # 读取排除文件列表
     l=[]
     with open(ignore_listfile,encoding="utf-8") as f:
         for line in f:
@@ -24,33 +24,33 @@ def read_ig(ignore_listfile): # 读取忽略文件列表
                 l.append(line)
     return l
 
-def check_ig(file, ignore_list): # 判断文件是否应被忽略
+def check_ig(file, ignore_list): # 判断文件是否应被排除
     for ig in ignore_list:
         if fnmatch.fnmatch(file,ig):
             return True
     return False
 
 def main():
-    if len(sys.argv) >= 3:
+    if len(sys.argv) >= 3: # 解析程序命令行参数 sys.argv
         src,dst = sys.argv[1:3]
         ignore_listfile = sys.argv[3] if len(sys.argv) >= 4 else None
     else:
-        print('用法:%s <源目录> <目标目录>'%sys.argv[0])
-        src = normpath(input('输入源目录: ')).strip('"').strip()
-        dst = normpath(input('输入目标目录: ')).strip('"').strip()
-        default = '.gitignore'
+        print('用法:%s <源目录> <目标目录>' % sys.argv[0])
+        src = normpath(input('输入源目录: ')).strip()
+        dst = normpath(input('输入目标目录: ')).strip()
+        default = '.gitignore' # 仅支持通配符格式
         if not os.path.isfile(default):default=None
-        inp = input('忽略的文件列表 (默认 %s): '%default) or default
+        ignore_listfile = input('排除文件的列表 (默认 %s): '%default) or default
 
-    if inp is not None:
-        ignore_list = read_ig(normpath(inp).strip('"').strip())
+    if ignore_listfile is not None: # 如果有排除列表文件
+        ignore_list = read_ig(normpath(ignore_listfile).strip('"').strip())
     else:ignore_list = []
 
     all_=False;ignore_all=False
     for file in direc(src,dirs=False):
         if check_ig(file, ignore_list):continue
 
-        dst_file = dst + file[len(src):] # 原为file.replace(src,'')
+        dst_file = os.path.join(dst + file[len(src):]) # 相当于file.replace(src,'')
         if os.path.isfile(dst_file):
             # 用源目录中新的文件替换旧的文件
             if os.stat(file).st_mtime > os.stat(dst_file).st_mtime:
@@ -73,7 +73,7 @@ def main():
                 else:
                     print('忽略 %s'%dst_file)
         else:
-            # 旧文件不存在时, 直接复制
+            # 目标目录中旧文件不存在时
             print('已复制:',file,dst_file)
             copy2(file,dst_file)
 
@@ -94,7 +94,7 @@ def main():
                 elif ans.lower() in ('a','all'):
                     all_=True;os.remove(file)
                 elif ans.lower() in ('i','ignore all'):
-                        ignore_all=True
+                    ignore_all=True
             else:
                 print('忽略 %s'%file)
 
@@ -103,14 +103,14 @@ def main():
         if check_ig(dir_, ignore_list):continue
 
         if not os.listdir(dir_)\
-    and not os.path.isfile(os.path.join(src, dir_[len(dst):].lstrip('\\'))):
+    and not os.path.isdir(os.path.join(src, dir_[len(dst):].lstrip('\\'))):
             os.removedirs(dir_)
             print('已删除空目录 %s'%dir_)
 
 
 if __name__=="__main__":
     try:main()
-    except Exception: #目的是避免异常时程序闪退
-        traceback.print_exc()
-    if not 'pythonw' in os.path.split(sys.executable)[1]:
+    except Exception:
+        traceback.print_exc() # 显示错误消息
+    if not 'pythonw' in os.path.split(sys.executable)[1]: #在pythonw.exe(如IDLE)中运行时不暂停
         os.system('pause')
