@@ -1,14 +1,15 @@
-"""一个关于Python对象工具的模块。
-A tool of python object with tkinter and command-lines.
+"""一个提供操作Python底层对象工具的模块。
+A tool of operating internal python object with some submodules.
 
 """
 
 import sys
+from warnings import warn
 from pprint import pprint
 
 __email__="3416445406@qq.com"
-__author__="七分诚意 qq:3076711200 邮箱:%s"%__email__
-__version__="1.2.0"
+__author__="qfcy qq:3076711200 邮箱:%s"%__email__
+__version__="1.2.1"
 
 _ignore_names=["__builtins__","__doc__"]
 __all__=["objectname","bases","describe","desc"]
@@ -88,21 +89,26 @@ file:一个类似文件的对象。
                     print("<AttributeError!>",end='',file=file)
 
 desc=describe #别名
+# 导入其他模块中的函数和类
 try:
     from .browser import browse
     __all__.append("browse")
 # (ImportError,SystemError): 修复Python 3.4的bug
-except (ImportError,SystemError):pass
+except (ImportError,SystemError):warn("Failed to import module .browser .")
 try:
     from .search import make_list,search #,test_make_list,test_search
     __all__.extend(["make_list","search"])
 # 同上
-except (ImportError,SystemError):pass
+except (ImportError,SystemError):warn("Failed to import module .search .")
 
 try:
     from .code_ import Code
     __all__.append("Code")
-except (ImportError,SystemError):pass
+except (ImportError,SystemError):warn("Failed to import module .code.")
+try:
+    from pyobj_extension import *
+    __all__.extend(["convptr","py_incref","py_decref"])
+except ImportError:warn("Failed to import module pyobj_extension.")
 
 def test():
     try:
@@ -113,4 +119,4 @@ def test():
         return 1
     else:return 0
 
-if __name__=="__main__":sys.exit(test())
+if __name__=="__main__":test()
