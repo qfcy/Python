@@ -1,19 +1,21 @@
 "命令行: encryptions.py 文件名1 [文件名2] [...]"
-import hashlib,sys,os
+import hashlib,sys,os,zlib
 __all__=["encrypt","decrypt","test"]
 FILETYPE=".encrypt"
 
-def encrypt(data,password):
+def encrypt(data,password,compress_level=-1):
+    data = zlib.compress(data,compress_level)
     sha256=hashlib.sha256(password.encode("utf-8")).hexdigest()
-    encrypted = sha256.encode() + len(data).to_bytes(8,"big")
+    head = sha256.encode() + len(data).to_bytes(8,"big")
     mask = hashlib.sha256((password*2).encode("utf-8")
                           ).hexdigest() # 使用密码的变体(重复2次)的sha256作为掩码
     mask_num = int.from_bytes(mask.encode(),"little")
+    encrypted=b''
     for i in range(0,len(data),64): # sha256结果为64字节长
         num = int.from_bytes(data[i:i+64],"little") # 截取data的一部分
         num_enc = num ^ mask_num # 将data的一部分与掩码进行异或运算
         encrypted += num_enc.to_bytes(64,"little")
-    return encrypted
+    return head + encrypted[:len(data)]
 
 def decrypt(encrypted,password):
     sha256 = encrypted[:64]
@@ -29,7 +31,7 @@ def decrypt(encrypted,password):
         num_enc = int.from_bytes(encrypted[i:i+64],"little")
         num = num_enc ^ mask_num # 与掩码进行异或运算
         data += num.to_bytes(64,"little")
-    return data[:length] # 返回原长度的数据
+    return zlib.decompress(data[:length]) # 返回原长度的数据
 
 def test():
     seq=bytes(range(256));password="123"

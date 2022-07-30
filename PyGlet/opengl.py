@@ -22,7 +22,7 @@ def draw_geometry():
  
     glColor3f(0,0,0);
     #绘制正方体的边
-    size = 2
+    size = 5.0
     glBegin(GL_LINES);
     #---1---
     glVertex3f(size, size, size);
