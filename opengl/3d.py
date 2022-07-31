@@ -25,6 +25,7 @@ def on_draw():
     glTranslatef(*pos)
     glRotatef(rot_y, 0, 1, 0)
 
+    #glClear(GL_COLOR_BUFFER_BIT)
     glBegin(GL_POLYGON)
     #gluLookAt(0.0, 0.0, 0.0, -5.0, -5.0, 0.0, 0.0, 1.0, 0.0)
     glColor3f(0.0, 1.0, 1.0)
