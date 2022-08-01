@@ -4,12 +4,6 @@ from OpenGL.GLUT import *
 
 WIDTH=400;HEIGHT=400
 cam_x=0;cam_y=0;cam_z=-5
-def init_condition():
-    glClearColor(1, 1, 1, 1)  # 定义背景为白色
-    glMatrixMode(GL_MODELVIEW)
-    glLoadIdentity()
-    gluLookAt(0,0,-5,0,0,20,0,0,1)
-    gluPerspective(60, WIDTH/HEIGHT, 1, 100)
 
 def draw_geometry():
     glClear(GL_COLOR_BUFFER_BIT)
