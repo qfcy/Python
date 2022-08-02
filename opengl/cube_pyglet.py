@@ -1,6 +1,7 @@
 import pyglet
 from pyglet.gl import *
 from pyglet.gl.glu import *
+from pyglet.window import key
 
 WIDTH=400;HEIGHT=400
 cam_x=0;cam_y=0;cam_z=-5
@@ -9,7 +10,7 @@ window = pyglet.window.Window(height=HEIGHT, width=WIDTH)
 
 @window.event
 def on_draw(): # 注意函数名
-    window.clear()
+
     glMatrixMode(GL_PROJECTION);  # 设置当前矩阵为投影矩阵.
     glLoadIdentity();
     # glEnable(GL_DEPTH_TEST)
@@ -22,7 +23,7 @@ def on_draw(): # 注意函数名
 
     glViewport(0, 0, WIDTH,HEIGHT)
 
-    glClear(GL_COLOR_BUFFER_BIT)
+    window.clear() # 或 glClear(GL_COLOR_BUFFER_BIT)
     glClear(GL_DEPTH_BUFFER_BIT) # 清除深度缓冲区
  
     # 改变相机位置和角度
@@ -80,19 +81,19 @@ def on_draw(): # 注意函数名
     glFlush()
 
 @window.event
-def on_key_press(key,m): # 注意函数名称
+def on_key_press(k,m): # 注意函数名称
     global cam_x,cam_y,cam_z
-    if key==65362: # 下
+    if k==key.DOWN: # 下
         cam_y-=1
-    elif key==65364:# 上
+    elif k==key.UP:# 上
         cam_y+=1
-    elif key==65361: # 左
+    elif k==key.LEFT: # 左
         cam_x-=1
-    elif key==65363: # 右
+    elif k==key.RIGHT: # 右
         cam_x+=1
-    elif key==65365: # page up
+    elif k==key.PAGEUP: # page up
         cam_z+=0.5
-    elif key==65366: # page down
+    elif k==key.PAGEDOWN: # page down
         cam_z-=0.5
     on_draw()
 
