@@ -1,19 +1,17 @@
 import pyglet
 from pyglet.gl import *
+from pyglet.window import key
 
 pos = [0, 0, -20]
 rot_y = 0
 
-config = Config(sample_buffers=1, samples=8)
-tela = pyglet.window.Window(height=500, width=500, config=config)
+win = pyglet.window.Window(height=500, width=500)
 
-@tela.event
+@win.event
 def on_draw():
 
     global pos_z, rot_y
     print('drawing')
-
-    tela.clear()
 
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
@@ -25,34 +23,34 @@ def on_draw():
     glTranslatef(*pos)
     glRotatef(rot_y, 0, 1, 0)
 
-    #glClear(GL_COLOR_BUFFER_BIT)
+    win.clear() # 或glClear(GL_COLOR_BUFFER_BIT)
+    gluLookAt(0, 0, 0, -5, -5, 0, 0, 1, 0)
+
     glBegin(GL_POLYGON)
-    #gluLookAt(0.0, 0.0, 0.0, -5.0, -5.0, 0.0, 0.0, 1.0, 0.0)
-    glColor3f(0.0, 1.0, 1.0)
+    glColor3f(0, 1, 1)
     glVertex3f(-5,-5,0)
     glVertex3f(5,-5,0)
     glVertex3f(0,5,0)
+    glColor3f(1, 0, 1)
     glVertex3f(5,-5,5)
     glVertex3f(5,-5,-5)
-    glColor3f(0.0, 0.0, 0.0)
     glEnd()
 
     glFlush()
 
-@tela.event
+@win.event
 def on_key_press(s,m):
 
     global pos_z, rot_y
-
-    if s == pyglet.window.key.W:
+    if s == key.S:
         pos[2] -= 1
-    if s == pyglet.window.key.S:
+    if s == key.W:
         pos[2] += 1
-    if s == pyglet.window.key.A:
+    if s == key.A:
         rot_y += 5
-    if s == pyglet.window.key.D:
+    if s == key.D:
         rot_y -= 5
 
-glClearColor(1.0, 1.0, 0.8, 1)
-gluLookAt(4.0, 2.0, 4.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
+glClearColor(1, 1, 0.8, 1)
+gluLookAt(4, 2, 4, 0, 0, 0, 0, 1, 0)
 pyglet.app.run()
