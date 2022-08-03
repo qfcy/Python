@@ -24,7 +24,7 @@ def on_draw(): # 注意函数名
     glViewport(0, 0, WIDTH,HEIGHT)
 
     window.clear() # 或 glClear(GL_COLOR_BUFFER_BIT)
-    glClear(GL_DEPTH_BUFFER_BIT) # 清除深度缓冲区
+    glClear(GL_DEPTH_BUFFER_BIT) # 清除深度(z排序)缓冲区
  
     # 改变相机位置和角度
     gluLookAt(cam_x,cam_y,cam_z,cam_x,cam_y,100000,0,1,0)
