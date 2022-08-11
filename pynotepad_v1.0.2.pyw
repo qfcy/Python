@@ -26,8 +26,8 @@ except ImportError:
 
 
 __all__=["directories","search"]
-__email__="3416445406@qq.com"
-__author__="fufvocdi 邮箱:%s"%__email__
+__email__="<email>"
+__author__="fufvocdi"
 __version__="1.0.2"
 
 #_REPLACE_CHARS=['\x00','\r']

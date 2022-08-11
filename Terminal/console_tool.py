@@ -10,8 +10,8 @@ except ImportError:
     exec('import pip._vendor.colorama as colorama')
     exec('import pip._vendor.colorama.ansi as ansi')
 
-__email__="3416445406@qq.com"
-__author__="fufvocdi 邮箱:%s"%__email__
+__email__="<email>"
+__author__="fufvocdi"
 __version__="1.2.3"
 
 BEL='\a' #振铃符
