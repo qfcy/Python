@@ -2,7 +2,7 @@
 import sys, shelve
 
 __author__='qfcy'
-__email__='3416445406@qq.com'
+__email__='3076711200@qq.com'
 __version__='1.0.1'
 _TITLE="database"
 
