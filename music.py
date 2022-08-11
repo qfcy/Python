@@ -15,7 +15,7 @@ freqs=[None,264,297,330,352,396,440,495,528,556]
 music_icon=""
 
 __all__=["music","sinewave"]
-__email__="3416445406@qq.com"
+__email__="3076711200@qq.com"
 __author__="七分诚意 qq:3076711200"
 __version__="1.1.2"
 

@@ -1,8 +1,8 @@
 #读取二进制文件的程序
 import sys,os,colorama
 
-__email__="3416445406@qq.com"
-__author__="七分诚意 qq:3076711200 邮箱:%s"%__email__
+__email__="3076711200@qq.com"
+__author__="七分诚意 qq:3076711200"
 __version__="1.0"
 
 def readbinfile(filename):

@@ -9,8 +9,8 @@
 """
 import sys
 
-__email__="3416445406@qq.com"
-__author__="七分诚意 qq:3076711200 邮箱:%s"%__email__
+__email__="3076711200@qq.com"
+__author__="七分诚意 qq:3076711200"
 __version__="1.1.3"
 
 try:

@@ -39,8 +39,8 @@ except ImportError:windnd=None
 try:import chardet
 except ImportError:chardet=None
 
-__email__="3416445406@qq.com"
-__author__="qfcy qq:3076711200 邮箱:%s"%__email__
+__email__="3076711200@qq.com"
+__author__="qfcy qq:3076711200"
 __version__="1.3.3";__doc__=__doc__%__version__ # 在__doc__中加入版本信息
 
 def view_hex(byte):
@@ -835,7 +835,7 @@ class Editor(Tk):
             self.save()
 
     def about(self):
-        msgbox.showinfo("关于",__doc__+"\n作者: "+__author__,parent=self)
+        msgbox.showinfo("关于",__doc__,parent=self)
     def feedback(self):
         webbrowser.open("https://blog.csdn.net/qfcy_/article/details/118399185")
         msgbox.showinfo('',"如有反馈, 请在原文中填写评论, 谢谢。")

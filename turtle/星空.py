@@ -5,8 +5,8 @@ from turtle import *
 from turtle import Terminator
 from time import sleep, perf_counter
 
-__email__="3416445406@qq.com"
-__author__="七分诚意 qq:3076711200 邮箱:%s"%__email__
+__email__="3076711200@qq.com"
+__author__="七分诚意 qq:3076711200"
 __version__="1.0.3"
 
 class Star(Turtle):

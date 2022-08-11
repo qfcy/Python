@@ -12,8 +12,8 @@ try:
 except:ImageGrab=None
 
 _ver="1.5"
-__email__="3416445406@qq.com"
-__author__="七分诚意 qq:3076711200 邮箱:%s"%__email__
+__email__="3076711200@qq.com"
+__author__="七分诚意 qq:3076711200"
 
 def _load_icon(window,filename):
     #为window加载图标

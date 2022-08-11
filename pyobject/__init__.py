@@ -7,8 +7,8 @@ import sys
 from warnings import warn
 from pprint import pprint
 
-__email__="3416445406@qq.com"
-__author__="qfcy qq:3076711200 邮箱:%s"%__email__
+__email__="3076711200@qq.com"
+__author__="qfcy qq:3076711200"
 __version__="1.2.1"
 
 _ignore_names=["__builtins__","__doc__"]
