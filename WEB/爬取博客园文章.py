@@ -15,7 +15,7 @@ title = re.findall('<title>(.*?)</title>',text,re.S)[0]
 tree = HTML(text)
 div = tree.xpath('//*[@id="cnblogs_post_body"]')[0]
 
-content='<html><head><title>%s</title><body>'%title
+content='<html><head><title>%s</title><body>'%title # 要保存的网页内容
 for result in re.findall('(<link.*?rel="stylesheet" href="(.*?)")',text,re.S):
     if not result[1].startswith('https://'):
         css = result[0].replace(result[1],
