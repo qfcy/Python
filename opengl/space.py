@@ -35,15 +35,16 @@ def draw_sphere(dx,dy,dz,color): # 绘制球体
 window = pyglet.window.Window(fullscreen=True)
 WIDTH,HEIGHT = window.width, window.height # 获取屏幕分辨率
 @window.event
-def on_draw(): # 注意函数名, 必须是on_draw才能在绘制时被回调
+def on_draw(): # 注意函数名, 必须是on_draw才能绑定这个事件
 
-    glMatrixMode(GL_PROJECTION)  # 设置当前矩阵为投影矩阵.
+    glMatrixMode(GL_PROJECTION)  # 设置当前矩阵为投影矩阵
     glLoadIdentity()
 
-    # 投影变换.三维变二维
-    glFrustum(-2, 2, -2*HEIGHT/WIDTH, 2*HEIGHT/WIDTH, 2, 30000)  # 透视投影.
+    # 透视投影, 前4个参数类似游戏中的FOV(视角大小), 
+    # 后2个参数分别是物体与相机的最近、最远距离
+    glFrustum(-2, 2, -2*HEIGHT/WIDTH, 2*HEIGHT/WIDTH, 2, 30000)
 
-    glMatrixMode(GL_MODELVIEW)  # 设置当前矩阵为模型视图矩阵.
+    glMatrixMode(GL_MODELVIEW)  # 设置当前矩阵为模型视图矩阵
     glLoadIdentity()
 
     glViewport(0, 0, WIDTH,HEIGHT)
@@ -55,7 +56,7 @@ def on_draw(): # 注意函数名, 必须是on_draw才能在绘制时被回调
     cam_x,cam_y,cam_z,flag = convert_pos()
     gluLookAt(cam_x,cam_y,cam_z,centerx,centery,centerz,0,0,flag) # 0,0,flag为相机朝上方向
 
-    for pos, color in lst_pos:
+    for pos, color in lst_pos: # 绘制列表中的各个球体
         draw_sphere(*pos,color)
 
     glFlush()
@@ -81,7 +82,7 @@ def on_key_press(k,_): # 注意函数名
 @window.event
 def on_mouse_drag(x,y,dx,dy,btn,_):
     global angle_xy, angle_z
-    angle_xy += dx / 100
+    angle_xy -= dx / 100
     angle_z -= dy / 100
     angle_z %= math.pi * 2
     on_draw()
@@ -101,5 +102,5 @@ for i in range(50): # 随机生成多个球体
     lst_pos.append(((randint(-500,500),randint(-500,500),randint(-500,500)),
                     (light,light,light)))
 glClearColor(0, 0, 0, 1)
-glEnable(GL_DEPTH_TEST) # 开启深度(z排序)
+glEnable(GL_DEPTH_TEST) # 开启深度(z排序), 使程序支持近的物体遮挡远的物体
 pyglet.app.run()
