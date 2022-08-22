@@ -81,14 +81,14 @@ def onKey(key,x,y):
     draw_geometry()
 
 def shapeWidget(w, h):
-    glMatrixMode(GL_PROJECTION);#设置当前矩阵为投影矩阵.
-    glLoadIdentity();
+    glMatrixMode(GL_PROJECTION) #设置当前矩阵为投影矩阵
+    glLoadIdentity()
     #glEnable(GL_DEPTH_TEST)
  
-    #投影变换.三维变二维
-    glFrustum(-5, 5, -5, 5, 2, 1000);#透视投影.
+    # 透视投影, 类似游戏中的FOV(视角大小)
+    glFrustum(-5, 5, -5, 5, 2, 1000)
  
-    glMatrixMode(GL_MODELVIEW)#设置当前矩阵为模型视图矩阵.
+    glMatrixMode(GL_MODELVIEW)  # 模型视图矩阵
  
     glViewport(0, 0, w, h)
 
