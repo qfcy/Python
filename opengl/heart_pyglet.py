@@ -34,7 +34,7 @@ def draw_heart(dx,dy,dz): # 绘制心形
     glBegin(GL_POLYGON)
     glColor3f(random()*0.5+0.5, 0, random()*0.5+0.5) # 随机生成颜色
     for x, y in data:
-        glVertex3f(y+dx, z1+dy, -x+dz) # 不使用x+dx, y+dy, z1+dz目的是旋转心形, 使心形更易于查看
+        glVertex3f(y+dx, z1+dy, -x+dz) # 使用y,z和-x, 旋转心形, 使心形更易于查看
     glEnd()
     glBegin(GL_POLYGON)
     for x, y in data:
@@ -43,7 +43,7 @@ def draw_heart(dx,dy,dz): # 绘制心形
     # 绘制侧面
     glColor3f(0.5, 0, 0.5)
     for i in range(len(data)):
-        if i + 1 == len(data):  # 下一个点超出索引范围
+        if i + 1 == len(data):  # 到达列表末尾
             next_point = data[0]
         else:
             next_point = data[i + 1]
@@ -58,15 +58,16 @@ def draw_heart(dx,dy,dz): # 绘制心形
 window = pyglet.window.Window(height=HEIGHT, width=WIDTH)
 
 @window.event
-def on_draw(): # 注意函数名, 必须是on_draw才能在绘制时被回调
+def on_draw(): # 注意函数名, 必须是on_draw才能绑定这个事件
 
-    glMatrixMode(GL_PROJECTION)  # 设置当前矩阵为投影矩阵.
+    glMatrixMode(GL_PROJECTION)  # 设置当前矩阵为投影矩阵
     glLoadIdentity()
 
-    # 投影变换.三维变二维
-    glFrustum(-5, 5, -5, 5, 2, 1000)  # 透视投影.
+    # 透视投影, 前4个参数类似游戏中的FOV(视角大小), 
+    # 后2个参数分别是物体与相机的最近、最远距离
+    glFrustum(-5, 5, -5, 5, 2, 1000)
 
-    glMatrixMode(GL_MODELVIEW)  # 设置当前矩阵为模型视图矩阵.
+    glMatrixMode(GL_MODELVIEW)  # 模型视图矩阵
     glLoadIdentity()
 
     glViewport(0, 0, WIDTH,HEIGHT)
@@ -78,13 +79,13 @@ def on_draw(): # 注意函数名, 必须是on_draw才能在绘制时被回调
     cam_x,cam_y,cam_z,flag = convert_pos()
     gluLookAt(cam_x,cam_y,cam_z,centerx,centery,centerz,0,0,flag) # 0,0,flag为相机朝上方向
 
-    for dx,dy,dz in lst_pos:
+    for dx,dy,dz in lst_pos: # 绘制列表中的各个心形
         draw_heart(dx,dy,dz)
 
     glFlush()
 
 @window.event
-def on_key_press(k,_): # 注意函数名
+def on_key_press(k,modifiers): # 注意函数名
     global angle_xy,angle_z,distance
     if k==key.DOWN: # 下
         angle_z -= math.pi * 1/18 # 10°
@@ -102,15 +103,15 @@ def on_key_press(k,_): # 注意函数名
     on_draw()
 
 @window.event
-def on_mouse_drag(x,y,dx,dy,btn,_):
+def on_mouse_drag(x,y,dx,dy,btn,modifiers):
     global angle_xy, angle_z
-    angle_xy += dx / 100
+    angle_xy -= dx / 100
     angle_z -= dy / 100
     angle_z %= math.pi * 2
     on_draw()
 
 @window.event
-def on_mouse_scroll(x,y, _, d):
+def on_mouse_scroll(x,y, modifiers, d):
     global distance
     distance /= 1.1**d
     on_draw()
@@ -120,5 +121,5 @@ lst_pos = [(0,0,0)] # 中心的心形
 for i in range(20):
     lst_pos.append((randint(-200,200),randint(-200,200),randint(-200,200)))
 glClearColor(0.8, 1, 1, 1)
-glEnable(GL_DEPTH_TEST) # 开启深度(z排序)
+glEnable(GL_DEPTH_TEST) # 开启深度(z排序), 使程序支持近的物体遮挡远的物体
 pyglet.app.run()
