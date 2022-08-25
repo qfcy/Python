@@ -1,15 +1,15 @@
-import sys,os,timer,encodings
+import sys,os,encodings
 
 def writesymbols(filename,encoding='utf-8'):
     f=open(filename,'wb')
     try:
-        for i in range(55296):
+        for i in range(0x110000):
             f.write(bytes(chr(i),encoding=encoding,errors="replace"))
     except LookupError:pass
+    # except UnicodeEncodeError:pass
     finally:f.close()
 
 def main():
-    t=timer.Timer()
     try:
         os.mkdir("%s\symbols"%sys.path[0])
     except FileExistsError:pass
@@ -18,10 +18,12 @@ def main():
         print("writing:%s"%filename)
         writesymbols(filename,encoding=sys.argv[1])
     else:
-        for coding in encodings.aliases.aliases.values():
+        codings = []
+        for coding in ["utf-8"]+list(encodings.aliases.aliases.values()):
+            if coding in codings:continue
             filename="%s\symbols\symbol_%s.txt"%(sys.path[0],coding)
             print("writing:%s"%filename)
             writesymbols(filename,encoding=coding)
-        t.printtime()
+            codings.append(coding)
 
 if __name__=="__main__":main()
