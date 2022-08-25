@@ -1,19 +1,17 @@
-from random import randint
+def reverse_p(str,n):
 
-# mylist: 存储年龄的列表
+    if n<=1:
 
-mylist=[]
+        print(str)
 
-for i in range(80):
+    else:
 
-    mylist.append(randint(1,80))
+        print(str[-1])
 
-# 统计
+        reverse_p(str[:-1],n-1)
 
-total=0
 
-for age in mylist:
 
-    if age<18:total+=1
+str=input("输入:")
 
-print("不能上网的人数: ",total)
+reverse_p(str,len(str))

@@ -1,17 +1,11 @@
-def reverse_p(str,n):
+def Prime(num):
 
-    if n<=1:
+    # 异常处理
 
-        print(str)
+    if num<=0:raise ValueError("数值必须大于0")
 
-    else:
+    for i in range(2,num):
 
-        print(str[-1])
+        if num%i==0:return False
 
-        reverse_p(str[:-1],n-1)
-
-
-
-str=input("输入:")
-
-reverse_p(str,len(str))
+    return True
