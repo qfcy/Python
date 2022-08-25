@@ -50,29 +50,39 @@ def select_area():
             window.update()
             time.sleep(0.01)
         except tk.TclError:break # 窗口已关闭
-    return area
+
+    x1, x2 = area[0],area[2] # 区分出左、右和上、下边, 
+    if x1 > x2:x1,x2 = x2,x1 # 即允许用户从不同方向拖曳选择
+    y1, y2 = area[1],area[3]
+    if y1 > y2:y1,y2 = y2,y1
+    return [x1, y1, x2, y2]
 
 def main():
     def _stop():
         nonlocal flag
         flag=False
-        btn_stop['state']=tk.DISABLED
+        btn_start['state']=tk.DISABLED
         root.title('录制已结束')
     def _start():
         nonlocal flag
         flag=True
-        btn_stop['text']='停止'
-        btn_stop['command']=_stop
+        btn_start['text']='停止'
+        btn_start['command']=_stop
+    def select():
+        nonlocal area
+        area = select_area()
+        btn_start['state']=tk.NORMAL
 
     root=tk.Tk()
     root.title('录屏工具')
-    btn_stop=tk.Button(root,text='开始',command=_start)
-    btn_stop.pack()
+    btn_select=tk.Button(root,text='选择录制区域',command=select)
+    btn_select.pack()
+    btn_start=tk.Button(root,text='开始',command=_start,state=tk.DISABLED)
+    btn_start.pack()
     lbl_fps=tk.Label(root,text='fps:0')
     lbl_fps.pack(fill=tk.X)
 
-    area=select_area()
-
+    area=None
     flag=False
     while not flag: # 等待用户点击开始
         root.update()
@@ -91,6 +101,6 @@ def main():
             root.update()
         except tk.TclError:flag=False # 窗口被关闭时
     for i in range(len(lst_image)):
-        lst_image[i].save('%d.png'%i)
+        lst_image[i].save('%d.png'%i) # 在当前文件夹保存png图像序列
 
 if __name__=="__main__":main()
