@@ -1,30 +1,29 @@
-import random
+from random import *
 
-while True:
-    a=random.randint(1,100)
-    b=random.randint(1,100)
+def GetRandomChar():
 
-    cod=input('Enter + or - or * or / or q:')
-    if cod=='+':
+    # GetRandomChar()返回一个字符, 而不是字符串
 
-        print("a=", a,", b=", b, "a+b=", a+b)
+    while True:
 
-    elif cod=='-':
+        a=randint(48,122)
 
-        print("a=", a,", b=", b, "a-b=", a-b)
+        if not 58<=a<=64 and not 91<=a<=96:return chr(a)
 
-    elif cod=='*':
 
-        print("a=", a,", b=", b, "a*b=", a*b)
 
-    elif cod=='/':
+m=eval(input("请输入一个整数:"))
 
-        print("a=", a,", b=", b, "a/b=", a/b)
+if m<5 or m>10:
 
-    elif cod=='q':
+    print("请输入5-10之间的整数")
 
-        break
+else:
 
-    else:
+    s=""
 
-        print('Only enter +,-,*,/,q')
+    for i in range(m):
+
+        s+=GetRandomChar()
+
+    print("验证码为"+s)
