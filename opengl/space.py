@@ -9,8 +9,8 @@ from random import random, randint
 angle_xy = math.pi / 2 # X-Y平面内的相机角度, 弧度制(0-360°变为0-2π)
 angle_z = 0 # 相机绕Z轴旋转的角度
 distance = 100
-centerx,centery,centerz = 5, 5, 5 # 中心点位置, 相机绕中心点旋转
 radius = 5 # 球体半径
+centerx,centery,centerz = radius,radius,radius # 中心点位置, 相机绕中心点旋转
 
 def convert_pos():
     # 将相机角度转换为相机的X,Y,Z坐标
@@ -29,7 +29,7 @@ def draw_sphere(dx,dy,dz,color): # 绘制球体
     glColor3f(*color) # 随机生成颜色
     glPushMatrix()
     glTranslatef(dx+radius, dy+radius, dz+radius)
-    glutSolidSphere(5,40,40)
+    glutSolidSphere(radius,40,40)
     glPopMatrix()
 
 window = pyglet.window.Window(fullscreen=True)
