@@ -1,4 +1,4 @@
-def is_palindrome1(s):
+def is_palindrome(s):
  s=str(s)
  l=len(s)
  c=0
@@ -7,3 +7,5 @@ def is_palindrome1(s):
    return False
   c+=1
  return True
+
+print(is_palindrome("aabbaa"))
