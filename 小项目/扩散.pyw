@@ -1,9 +1,9 @@
-﻿"使用tkinter.Canvas,模拟扩散运动的程序。"
-import time,random
+"使用tkinter.Canvas,模拟扩散运动的程序。"
+import time,random,math
 import tkinter as tk
 import tkinter.ttk as ttk
 
-_NUM=5000 #点数默认为5000
+_NUM=1000 #点数默认为1000
 _STARTED=False
 
 def start(canvas,num=_NUM):
@@ -21,8 +21,9 @@ def test(canvas,speed=5,num=_NUM,speed_scale=None):
         while True:
             if speed_scale:speed=int(speed_scale.get())
             for i in range(num):
-                dx=random.randrange(-speed,speed+1)
-                dy=random.randrange(-speed,speed+1)
+                angle = random.uniform(0,360)
+                dx=math.cos(angle)*speed
+                dy=math.sin(angle)*speed
                 canvas.move(i,dx,dy) #移动画布上的点
             canvas.update()
             #time.sleep(0.05)
