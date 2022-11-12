@@ -41,7 +41,7 @@ except ImportError:chardet=None
 
 __email__="3076711200@qq.com"
 __author__="qfcy qq:3076711200"
-__version__="1.3.3";__doc__=__doc__%__version__ # 在__doc__中加入版本信息
+__version__="1.3.4";__doc__=__doc__%__version__ # 在__doc__中加入版本信息
 
 def view_hex(byte):
     result=''
@@ -865,7 +865,8 @@ class Editor(Tk):
         self.drag_files=files
         self.after(50,self.onfiledrag2)
     def onfiledrag2(self):
-        if not self.filename and not self.file_modified: # 如果是新建的
+        self.saveconfig()
+        if not self.filename and not self.file_modified: # 如果刚新建窗口
             self.load(self.drag_files[0].decode('ansi'))
             del self.drag_files[0]
         for item in self.drag_files:
