@@ -1,5 +1,5 @@
 """简介 Introduction:
-A simple text editor written in Python.
+An open-source text editor written in Python.
 It supports editing text files,binary files with various encodings
 which can be automatically detected.
 When you edit a binary file, the contents of the file are displayed as escape sequences.
@@ -288,6 +288,7 @@ class Editor(Tk):
     FILETYPES=[("所有文件","*.*")]
     CONFIGFILE=os.getenv("userprofile")+"\\.pynotepad.pkl"
     AUTOWRAP=CHAR
+    SHOW_STATUS=True
 
     instances=[]
     def __init__(self,filename=""):
@@ -320,7 +321,8 @@ class Editor(Tk):
     def create_widgets(self):
         # 创建控件
         self.statusbar=Frame(self)
-        self.statusbar.pack(side=BOTTOM,fill=X)
+        if self.SHOW_STATUS:
+            self.statusbar.pack(side=BOTTOM,fill=X)
         self.status=Label(self.statusbar,justify=RIGHT)
         self.status.pack(side=RIGHT)
         self.txt_decoded=ScrolledText(self.statusbar,
@@ -442,6 +444,10 @@ class Editor(Tk):
         theme_menu.add_command(label="选择背景色",command=self.select_bg)
         theme_menu.add_command(label="重置",command=self.reset_theme)
         view.add_cascade(label="主题",menu=theme_menu)
+        self._show_status=IntVar(self)
+        self._show_status.set(1 if self.SHOW_STATUS else 0)
+        view.add_checkbutton(label="显示状态栏",command=self.show_statusbar,
+                         variable=self._show_status)
 
         helpmenu=Menu(self,tearoff=False)
         helpmenu.add_command(label="关于",command=self.about)
@@ -561,6 +567,15 @@ class Editor(Tk):
             if tag.lower() != "sel":
                 self.contents.tag_config(tag, background=self.contents["bg"])
 
+    def show_statusbar(self):
+        if self._show_status.get():
+            if self.isbinary:
+                self.statusbar.pack(side=BOTTOM,fill=X)
+            else:
+                self.statusbar.pack(side=BOTTOM,fill=X)
+        else:
+            self.statusbar.pack_forget()
+
 
     def window_onkey(self,event):
         # 如果按下Ctrl键
@@ -590,6 +605,7 @@ class Editor(Tk):
         self.file_modified=True
         self.update_status();self.change_title()
     def update_status(self,event=None):
+        if not self._show_status.get():return
         if self.isbinary:
             try:
                 selected=self.contents.get(SEL_FIRST,SEL_LAST)
@@ -837,8 +853,11 @@ class Editor(Tk):
     def about(self):
         msgbox.showinfo("关于",__doc__,parent=self)
     def feedback(self):
-        webbrowser.open("https://blog.csdn.net/qfcy_/article/details/118399185")
-        msgbox.showinfo('',"如有反馈, 请在原文中填写评论, 谢谢。")
+        msgbox.showinfo('PyNotepad',"""\
+PyNotepad提供了多个反馈渠道。
+若有反馈, 可以在 github.com/qfcy/Python 或 gitcode.net/qfcy_/Python 中创建issue。
+或者在作者 blog.csdn.net/qfcy_ 的文章 "python tkinter.Text 高级用法 -- 设计功能齐全的文本编辑器" 中填写评论。
+感谢您对PyNotepad项目的支持!""")
 
     def loadconfig(self):
         try:
@@ -858,7 +877,8 @@ class Editor(Tk):
              'NORMAL_FONTSIZE': int(font[-2]),
              'AUTOWRAP': self.contents['wrap'],
              'TEXT_BG':self.contents["bg"],
-             'TEXT_FG':self.contents["fg"],}
+             'TEXT_FG':self.contents["fg"],
+             "SHOW_STATUS":bool(self._show_status.get())}
         with open(self.CONFIGFILE,'wb') as f:
             pickle.dump(cfg,f)
     def onfiledrag(self,files):
