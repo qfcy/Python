@@ -65,7 +65,7 @@ if __name__=="__main__":
     window.geometry('250x108')
     try:
         app_path=os.path.split(os.path.realpath(__file__))[0]#获取程序路径
-        window.iconbitmap(app_path+r"\图标\数字.ico")#加载窗口图标
+        window.iconbitmap(app_path+r"\..\..\图标\数字.ico")#加载窗口图标
     except:pass#错误处理
 
     Label(text="有一个100内的整数给你猜",font="楷体").pack(fill=X)

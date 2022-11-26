@@ -1,4 +1,4 @@
-# 清除空文件夹的工具
+# 清除空文件(夹)的工具
 import sys,os
 from logging import basicConfig,log,INFO
 from search_file import direc

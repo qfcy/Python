@@ -2,7 +2,7 @@
 import curses,sys
 from curses.textpad import Textbox, rectangle
 import msgbox
-msgbox.init()
+msgbox.init() # 需要目录"小项目\面向对象"中的msgbox.py, 用于在消息框中显示错误信息
 
 def main(stdscr):
     curses.start_color()

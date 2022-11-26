@@ -1,3 +1,4 @@
+# 由其他作品改编
 import sys,os,timer
 from tkinter import *
 from PIL import Image
