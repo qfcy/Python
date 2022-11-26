@@ -34,6 +34,7 @@ def select_area():
     window.protocol("WM_DELETE_WINDOW",lambda:None)# 防止窗口被异常关闭
     cv=tk.Canvas(window,bg='white',cursor="target")
     cv.pack(expand=True,fill=tk.BOTH)
+    # TODO:用cv.winfo_screenwidth()和cv.winfo_screenheight()不能很好地支持高分屏。提示: 用cv.winfo_screenmmwidth()
     tip_id=cv.create_text((cv.winfo_screenwidth()//2,
                            cv.winfo_screenheight()//2),
                           text="拖曳选择录制区域",

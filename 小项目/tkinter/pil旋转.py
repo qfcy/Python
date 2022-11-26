@@ -15,7 +15,7 @@ def animate():
 root=Tk()
 cv=Canvas(root,bg='black')
 cv.pack(side=TOP,expand=True,fill=BOTH)
-old=Image.open("图标\\blackhole.jpg","r").resize((100,100))
+old=Image.open("..\\..\\图标\\blackhole.jpg","r").resize((100,100))
 imtk=ImageTk.PhotoImage(old)
 id=cv.create_image(100,100,image=imtk)
 cv.after(20,animate)

@@ -1,5 +1,6 @@
 from pdf2docx import Converter
 from os.path import normpath
+import traceback
 try:
     exec('import pip._vendor.colorama as colorama') # exec:避免增大pyinstaller文件体积
     colorama.init() # 支持彩色文字显示
@@ -13,5 +14,9 @@ docx_file = \
 
 # convert pdf to docx
 cv = Converter(pdf_file)
-cv.convert(docx_file, start=0, end=None)
-cv.close()
+try:
+    cv.convert(docx_file, start=0, end=None)
+    cv.close()
+except Exception:
+    traceback.print_exc()
+    os.system("pause")

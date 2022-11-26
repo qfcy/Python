@@ -1,3 +1,4 @@
+# 该项目为beta版本, 录制按键功能待完善
 import time,sys
 import pyWinhook as pyHook
 import pythoncom
