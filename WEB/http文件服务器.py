@@ -24,6 +24,8 @@ def handle_client(client_socket):
     dir = unquote(req_head.split(' ')[1])[1:] # 请求的url后面的路径, 在请求数据的第一行
     if dir == "":
         dir="."
+    if dir[-1] in ("/","\\"):
+        dir=dir[:-1]
     # 获取url对应的文件路径
     path = os.path.join(os.getcwd(),dir)
     print("访问路径:", path)
@@ -50,8 +52,9 @@ def handle_client(client_socket):
                 else: # 子项是目录
                     subdirs.append(sub)
 
+            if dir != ".":
+                response += f'<a href="/{dir}/..">[上级目录]</a><p></p>'.encode()
             # 依次显示各个子文件、目录
-            response += '<a href="..">[上级目录]</a><p></p>'.encode()
             for sub in subdirs:
                 response += (f'<a href="/{dir}/{sub}">[目录]{sub}</a><p></p>').encode()
             for sub in subfiles:
