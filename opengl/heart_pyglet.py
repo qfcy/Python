@@ -4,6 +4,7 @@ from pyglet.gl.glu import *
 from pyglet.window import key
 import math
 from random import random, randint
+from pyglet import clock
 
 WIDTH=400;HEIGHT=400
 angle_xy = math.pi / 2 # X-Y平面内的相机角度, 弧度制(0-360°变为0-2π)
@@ -116,6 +117,15 @@ def on_mouse_scroll(x,y, modifiers, d):
     distance /= 1.1**d
     on_draw()
 
+# 实现动画
+def animate(event):
+    global centerx
+    centerx+=1
+    xpos=lst_pos[0][0]
+    lst_pos[0]=(xpos+1,0,0)
+    on_draw()
+
+clock.schedule_interval(animate, 0.02)
 # 随机生成多个心形
 lst_pos = [(0,0,0)] # 中心的心形
 for i in range(20):
