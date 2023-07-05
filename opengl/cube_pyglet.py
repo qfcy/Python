@@ -5,12 +5,13 @@ from pyglet.window import key
 
 WIDTH=400;HEIGHT=400
 cam_x=0;cam_y=0;cam_z=-5
-
-window = pyglet.window.Window(height=HEIGHT, width=WIDTH)
+# sample_buffers为抗锯齿，depth_size为启用z排序
+conf = pyglet.gl.Config(sample_buffers=1, samples=4, depth_size=1)
+window = pyglet.window.Window(height=HEIGHT, width=WIDTH,
+                              config=conf)
 
 @window.event
 def on_draw(): # 注意函数名
-
     glMatrixMode(GL_PROJECTION)  # 设置当前矩阵为投影矩阵
     glLoadIdentity()
     # glEnable(GL_DEPTH_TEST)
@@ -30,7 +31,7 @@ def on_draw(): # 注意函数名
     gluLookAt(cam_x,cam_y,cam_z,cam_x,cam_y,100000,0,1,0)
 
     # 顶、底面
-    glColor3f(0.5,0.5,1)
+    glColor4f(0.5, 0.5, 1, 0.5)
     glBegin(GL_POLYGON)
     glVertex3f(10,10,10)
     glVertex3f(0,10,10)
@@ -38,7 +39,7 @@ def on_draw(): # 注意函数名
     glVertex3f(10,0,10)
     glEnd()
 
-    glColor3f(0.5, 1, 0)
+    glColor4f(0.5, 1, 0, 0.5)
     glBegin(GL_POLYGON)
     glVertex3f(10, 10, 0)
     glVertex3f(0, 10, 0)
@@ -46,7 +47,7 @@ def on_draw(): # 注意函数名
     glVertex3f(10, 0, 0)
     glEnd()
     # 4个侧面
-    glColor3f(1, 0.5, 1)
+    glColor4f(1, 0.5, 1, 0.5)
     glBegin(GL_POLYGON)
     glVertex3f(10, 0, 10)
     glVertex3f(0, 0, 10)
@@ -54,7 +55,7 @@ def on_draw(): # 注意函数名
     glVertex3f(10, 0, 0)
     glEnd()
 
-    glColor3f(0.5, 1, 1)
+    glColor4f(0.5, 1, 1, 0.5)
     glBegin(GL_POLYGON)
     glVertex3f(10, 10, 10)
     glVertex3f(0, 10, 10)
@@ -62,7 +63,7 @@ def on_draw(): # 注意函数名
     glVertex3f(10, 10, 0)
     glEnd()
 
-    glColor3f(0.8, 0.5, 1)
+    glColor4f(0.8, 0.5, 1, 0.5)
     glBegin(GL_POLYGON)
     glVertex3f(10, 10, 10)
     glVertex3f(10, 10, 0)
@@ -70,7 +71,7 @@ def on_draw(): # 注意函数名
     glVertex3f(10, 0, 10)
     glEnd()
 
-    glColor3f(1, 0.5, 0.5)
+    glColor4f(1, 0.5, 0.5, 0.5)
     glBegin(GL_POLYGON)
     glVertex3f(0, 10, 10)
     glVertex3f(0, 10, 0)
@@ -98,5 +99,7 @@ def on_key_press(k,m): # 注意函数名称
     on_draw()
 
 glClearColor(1, 1, 1, 1)
-glEnable(GL_DEPTH_TEST) # 开启深度(z排序)
+glEnable(GL_DEPTH_TEST) # 开启深度(z排序), 使程序支持近的物体遮挡远的物体
+glEnable(GL_BLEND) # 开启透明支持
+glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA)
 pyglet.app.run()
