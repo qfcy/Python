@@ -41,8 +41,8 @@ def draw_heart(dx,dy,dz): # 绘制心形
     for x, y in data:
         glVertex3f(y+dx, z2+dy, -x+dz)
     glEnd()
-    # 绘制侧面
-    glColor3f(0.5, 0, 0.5)
+    # 绘制透明侧面
+    glColor4f(0.5, 0, 0.5, 0.5)
     for i in range(len(data)):
         if i + 1 == len(data):  # 到达列表末尾
             next_point = data[0]
@@ -56,11 +56,13 @@ def draw_heart(dx,dy,dz): # 绘制心形
         glVertex3f(point[1]+dx, z2+dy, -point[0]+dz)
         glEnd()
 
-window = pyglet.window.Window(height=HEIGHT, width=WIDTH)
+# sample_buffers为抗锯齿，depth_size为启用z排序
+conf = pyglet.gl.Config(sample_buffers=1, samples=4, depth_size=1)
+window = pyglet.window.Window(height=HEIGHT, width=WIDTH,
+                              config=conf)
 
 @window.event
 def on_draw(): # 注意函数名, 必须是on_draw才能绑定这个事件
-
     glMatrixMode(GL_PROJECTION)  # 设置当前矩阵为投影矩阵
     glLoadIdentity()
 
@@ -132,4 +134,6 @@ for i in range(20):
     lst_pos.append((randint(-200,200),randint(-200,200),randint(-200,200)))
 glClearColor(0.8, 1, 1, 1)
 glEnable(GL_DEPTH_TEST) # 开启深度(z排序), 使程序支持近的物体遮挡远的物体
+glEnable(GL_BLEND) # 开启透明支持
+glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA)
 pyglet.app.run()

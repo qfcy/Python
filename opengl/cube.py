@@ -14,7 +14,7 @@ def draw_geometry():
     gluLookAt(cam_x,cam_y,cam_z,cam_x,cam_y,100000,0,1,0)
 
     # 顶、底面
-    glColor3f(0.5,0.5,1)
+    glColor3f(0.5, 0.5, 1)
     glBegin(GL_POLYGON)
     glVertex3f(10,10,10)
     glVertex3f(0,10,10)
@@ -93,9 +93,10 @@ def shapeWidget(w, h):
     glViewport(0, 0, w, h)
 
 glutInit()  # 启动glut
-glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA)
+# GLUT_MULTISAMPLE为抗锯齿
+glutInitDisplayMode(GLUT_SINGLE | GLUT_RGBA | GLUT_MULTISAMPLE)
 glutInitWindowSize(WIDTH, HEIGHT)
-glutCreateWindow(b"OpenGL\xb3\xcc\xd0\xf2")  # 设定窗口标题, ansi编码
+glutCreateWindow("OpenGL程序".encode("ansi"))  # 设定窗口标题, ansi编码
 glutDisplayFunc(draw_geometry)  # 调用函数绘制
 glutKeyboardFunc(onKey)
 glutSpecialFunc(onKey)

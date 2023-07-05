@@ -11,9 +11,9 @@ angle_xy = math.pi / 2 # X-Y平面内的相机角度, 弧度制(0-360°变为0-2
 angle_z = 0 # 相机绕Z轴旋转的角度
 distance = 100
 radius = 5 # 球体半径
-centerx,centery,centerz = radius,radius,radius # 中心点位置, 相机绕中心点旋转
+index=0 # 当前跟踪的球索引
 
-def convert_pos():
+def convert_pos(centerx,centery,centerz,angle_xy,angle_z):
     # 将相机角度转换为相机的X,Y,Z坐标
     if math.pi/2 < angle_z < math.pi * 1.5:
         flag = -1 # 相机朝下
@@ -33,11 +33,12 @@ def draw_sphere(dx,dy,dz,color): # 绘制球体
     glutSolidSphere(radius,40,40)
     glPopMatrix()
 
-window = pyglet.window.Window(fullscreen=True)
+# sample_buffers为抗锯齿，depth_size为启用z排序
+conf = pyglet.gl.Config(sample_buffers=1, samples=4, depth_size=1)
+window = pyglet.window.Window(config=conf,fullscreen=True)
 WIDTH,HEIGHT = window.width, window.height # 获取屏幕分辨率
 @window.event
 def on_draw(flag=True): # 注意函数名, 必须是on_draw才能绑定这个事件
-
     if flag:
         glMatrixMode(GL_PROJECTION)  # 设置当前矩阵为投影矩阵
         glLoadIdentity()
@@ -55,7 +56,10 @@ def on_draw(flag=True): # 注意函数名, 必须是on_draw才能绑定这个事
     glClear(GL_DEPTH_BUFFER_BIT) # 清除深度(z排序)缓冲区
  
     # 改变相机位置和角度
-    cam_x,cam_y,cam_z,flag = convert_pos()
+    centerx,centery,centerz = lst_pos[index][0]  # 中心点位置, 相机绕中心点旋转
+    centerx += radius;centery += radius;centerz += radius
+    cam_x,cam_y,cam_z,flag = convert_pos(centerx,centery,centerz,
+                                         angle_xy,angle_z)
     gluLookAt(cam_x,cam_y,cam_z,centerx,centery,centerz,0,0,flag) # 0,0,flag为相机朝上方向
 
     for pos, color in lst_pos: # 绘制列表中的各个球体
@@ -64,8 +68,8 @@ def on_draw(flag=True): # 注意函数名, 必须是on_draw才能绑定这个事
     glFlush()
 
 @window.event
-def on_key_press(k,_): # 注意函数名
-    global angle_xy,angle_z,distance
+def on_key_press(k,arg): # 注意函数名
+    global angle_xy,angle_z,distance,index
     if k==key.DOWN: # 下
         angle_z -= math.pi * 1/18 # 10°
     elif k==key.UP:# 上
@@ -78,6 +82,11 @@ def on_key_press(k,_): # 注意函数名
         distance/=1.15
     elif k==key.PAGEDOWN: # page down
         distance*=1.15
+    elif k==key.TAB: # tab
+        if arg==1: # 按下了Shift键
+            index=(index-1) % len(lst_pos) # 切换到上一个球
+        else:
+            index = (index+1) % len(lst_pos)  # 切换到上一个球
     angle_z %= math.pi*2
     on_draw()
 
@@ -97,9 +106,9 @@ def on_mouse_scroll(x,y, _, d):
 
 # 实现动画
 def animate(event):
-    global centerx
-    centerx+=1
-    lst_pos[0][0]=(centerx-radius,0,0)
+    speed=1
+    xpos=lst_pos[0][0][0]+speed
+    lst_pos[0][0]=(xpos,0,0)
     on_draw()
 
 clock.schedule_interval(animate, 0.02)
