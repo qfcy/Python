@@ -3,6 +3,8 @@
 这些是仓库中的一些亮点项目：
 
 1.图形类
+- solar_system：计算机模拟万有引力、太阳系行星运动。【Gitcode版：（已移至仓库[Python 天体引力模拟程序](https://gitcode.net/qfcy_/python-gravity-simulation)）】
+【Github版：（已移至仓库[Python 天体引力模拟程序](https://github.com/qfcy/python-gravity-simulation)）】
 - opengl：3d图形的渲染，应用简单的OpenGL技术。
 - pygame：pygame的图形渲染，如球体碰撞等。
 
@@ -20,6 +22,7 @@
 - 复制文件工具.py：在后台复制带有指定关键词的文件。
 - 复制文件工具2.py：在后台复制指定文件夹。
 - 小项目 \ 文件处理 \ 清理cef程序缓存.py：清理常用软件如WPS、钉钉、Edge缓存数据的工具，适用于大多数软件。
+
 说明：部分文件处理项目需使用pip安装search-file库。
 
 4.网络类
@@ -36,6 +39,7 @@
 - timer.py：Python计时器模块，可用于程序性能分析。
 - catch_turtle：使用turtle库开发的一款游戏。
 - 小项目 \ turtle：编写的turtle小程序。
+
 更多这里没有介绍的项目，可在源代码的注释中查看说明。
 
 7.版权

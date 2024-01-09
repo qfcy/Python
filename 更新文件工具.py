@@ -5,12 +5,15 @@ import sys,os,shutil,fnmatch,traceback
 from search_file import direc
 
 def normpath(path):
+    # 重写os.path.normpath。规范化路径，如去除两端的双引号等
     path=os.path.normpath(path).strip('"')
-    if path.endswith(':'):
+    if path.endswith(':'): # 如果路径是盘符，如 C:
         path += '\\'
     return path
 
 def copy2(src,dst):
+    # 重写shutil.copy2函数
+    # 目标文件的目录不存在时，自动创建目录
     if not os.path.isdir(os.path.split(dst)[0]):
         os.makedirs(os.path.split(dst)[0],exist_ok=True)
     shutil.copy2(src,dst)
@@ -35,12 +38,13 @@ def main():
         src,dst = sys.argv[1:3]
         ignore_listfile = sys.argv[3] if len(sys.argv) >= 4 else None
     else:
-        print('用法:%s <源目录> <目标目录>' % sys.argv[0])
-        src = normpath(input('输入源目录: ')).strip()
-        dst = normpath(input('输入目标目录: ')).strip()
+        print('命令行用法:%s <源目录> <目标目录>' % sys.argv[0])
+        # Windows的控制台窗口支持直接拖入文件
+        src = normpath(input('将源文件夹拖到这里 (或输入源目录路径),再按Enter: ')).strip()
+        dst = normpath(input('将目标文件夹拖到这里 (或输入目标目录路径),再按Enter: ')).strip()
         default = '.gitignore' # 仅支持通配符格式
         if not os.path.isfile(default):default=None
-        ignore_listfile = input('排除文件的列表 (默认 %s): '%default) or default
+        ignore_listfile = input('拖入/输入排除文件的列表 (默认 %s), 直接按Enter可跳过: '%default) or default
 
     if ignore_listfile is not None: # 如果有排除列表文件
         ignore_list = read_ig(normpath(ignore_listfile).strip('"').strip())
@@ -68,8 +72,10 @@ def main():
                         copy2(dst_file,file)
                     elif ans.lower() in ('a','all'):
                         all_=True;copy2(dst_file,file)
-                    elif ans.lower() in ('i','ignore all'):
+                    elif ans.lower() in ('i','ignore all'): # 忽略全部
                         ignore_all=True
+                    else: # 用户输入N或跳过
+                        pass
                 else:
                     print('忽略 %s'%dst_file)
         else:
@@ -93,8 +99,10 @@ def main():
                     os.remove(file)
                 elif ans.lower() in ('a','all'):
                     all_=True;os.remove(file)
-                elif ans.lower() in ('i','ignore all'):
+                elif ans.lower() in ('i','ignore all'): # 忽略全部
                     ignore_all=True
+                else: # 输入N或跳过
+                    pass
             else:
                 print('忽略 %s'%file)
 

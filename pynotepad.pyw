@@ -691,7 +691,7 @@ class Editor(Tk):
         window.focus_force()
         return window
     def open(self):
-        #加载一个文件
+        #打开一个文件
         #if self.ask_for_save(quit=False)==0:return
         filename=filediag.askopenfilename(master=self,title='打开',
                             initialdir=os.path.split(self.filename)[0],

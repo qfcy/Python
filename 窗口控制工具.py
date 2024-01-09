@@ -4,7 +4,7 @@ import tkinter.ttk as ttk
 from tkinter.simpledialog import askstring
 import time
 
-__version__ = '1.1.03'
+__version__ = '1.1.1'
 # 以下代码用于管理按钮
 ttk._Button=ttk.Button
 buttons=[]
@@ -23,6 +23,9 @@ WM_CLOSE = 0x10
 WM_SETTEXT = 0x0c
 GWL_STYLE = -16
 GWL_EXSTYLE = -20
+SW_MINIMIZE = 6
+SW_MAXIMIZE = 3
+SW_RESTORE = 9
 
 WS_BORDER = 0x800000
 WS_CAPTION = 0xC00000 # WS_BORDER Or WS_DLGFRAME
@@ -56,9 +59,15 @@ def top():
     _top = not _top
 
 def minimize(): # 最小化
-    windll.user32.CloseWindow(hwnd)
-def unminimize():# 取消最小化
-    windll.user32.OpenIcon(hwnd)
+    windll.user32.ShowWindow(hwnd,SW_MINIMIZE)# 也可用windll.user32.CloseWindow(hwnd)
+def maximize():# 最大化
+    windll.user32.ShowWindow(hwnd,SW_MAXIMIZE)
+    time.sleep(0.1)
+    root.focus_force()
+def restore():# 还原
+    windll.user32.ShowWindow(hwnd,SW_RESTORE)
+    time.sleep(0.1)
+    root.focus_force()
 def close(): # 关闭窗口
     windll.user32.SendMessageA(hwnd,WM_CLOSE,0,0)
 
@@ -169,7 +178,9 @@ def select_win():
 
 root=tk.Tk()
 root.title('窗口控制工具')
-tk.Label(root,text='输入窗口名').pack()
+root.geometry("300x260")
+root.wm_attributes("-alpha",0.9) # 创建透明效果
+tk.Label(root,text='输入窗口名或点击"选择窗口"').pack()
 winname=tk.StringVar()
 __callback_name = winname.trace('w',findwin)
 ttk.Entry(root,textvariable=winname).pack(fill=tk.X,padx = 10)
@@ -180,15 +191,17 @@ ttk.Button(frame,text='置顶/取消置顶',command=top,
            state=tk.DISABLED).grid(row=1,column=2)
 ttk.Button(frame,text='最小化',command=minimize,
            state=tk.DISABLED).grid(row=2,column=1)
-ttk.Button(frame,text='取消最小化',command=unminimize,
+ttk.Button(frame,text='最大化',command=maximize,
            state=tk.DISABLED).grid(row=2,column=2)
-ttk.Button(frame,text='关闭',command=close,
+ttk.Button(frame,text='还原',command=restore,
            state=tk.DISABLED).grid(row=3,column=1)
-ttk.Button(frame,text='更改标题',command=settitle,
+ttk.Button(frame,text='关闭',command=close,
            state=tk.DISABLED).grid(row=3,column=2)
-ttk.Button(frame,text='更改样式',command=set_style,
+ttk.Button(frame,text='更改标题',command=settitle,
            state=tk.DISABLED).grid(row=4,column=1)
-ttk.Button(frame,text='更改透明度',command=set_alpha,
+ttk.Button(frame,text='更改样式',command=set_style,
            state=tk.DISABLED).grid(row=4,column=2)
+ttk.Button(frame,text='更改透明度',command=set_alpha,
+           state=tk.DISABLED).grid(row=5,column=1)
 frame.pack()
 root.mainloop()

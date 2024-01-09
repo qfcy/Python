@@ -1,3 +1,4 @@
+# 用py2exe打包exe的脚本（无黑色console窗口)
 from traceback import print_exc as p
 import sys,os
 try:
