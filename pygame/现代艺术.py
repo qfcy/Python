@@ -1,4 +1,5 @@
-﻿import pygame,random,sys
+﻿# 来自其他人书中的项目
+import pygame,random,sys
 from pygame.colordict import THECOLORS
 
 SCREEN_SIZE=WIDTH,HEIGHT=640,480;BACKCOLOR=255,255,255

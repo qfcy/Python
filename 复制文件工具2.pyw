@@ -2,6 +2,9 @@
 import sys,os,shutil,time,traceback
 
 sys.stderr=open("debug_2.log","w",encoding='utf-8')
+# config2.ini示例:
+# E:\path1
+# E:\path2
 
 with open("config2.ini") as f:
     src=f.readline().strip()

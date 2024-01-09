@@ -10,12 +10,13 @@ url = input('输入文章网址: ')
 req = get(url,headers=headers)
 text=req.content.decode('utf-8')
 patt=re.compile('<article.*</article>',re.S)
-css_patt=re.compile('<link rel="stylesheet" href=".*?blog.*?"',re.S)
+#css_patt=re.compile('<link rel="stylesheet" href=".*?blog.*?"',re.S)
 
 title=re.findall('<title>(.*?)</title>',text,re.S)[0]
-content='<html><head><title>%s</title><body>'%title
-for css in re.findall(css_patt,text):
-    content+=css+'>'
+content='''<html><head><meta charset="utf-8">\
+<title>%s</title><body>'''%title
+#for css in re.findall(css_patt,text):
+#    content+=css+'>'
 
 content += re.findall(patt,text)[0]
 content += '</body></html>'

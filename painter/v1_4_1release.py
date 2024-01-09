@@ -1,4 +1,5 @@
-﻿"""使用tkinter的Canvas控件制作的画板程序, 支持新建、打开、编辑和保存文档。
+﻿# 本版本加入了测试中的读写二进制文件功能
+"""使用tkinter的Canvas控件制作的画板程序, 支持新建、打开、编辑和保存文档。
 A painter that made by tkinter in Python.It supports new, open, edit and save documents."""
 import sys,os, pickle,json
 import tkinter as tk
@@ -470,38 +471,48 @@ class Painter():
             msgbox.showinfo("警告","""文件版本过高, 某些内容可能无法正常显示。
 当前版本: {}\n文件版本: {}""".format(_ver,self.data["ver"]))
     def open_datfile(self,filename):
-        # 二进制文件
+        # 用于支持二进制文件读取。二进制文件比文本文件体积更小。
+
         class Stop(Exception):pass
         def decode(bytes,signed=True):
+            # 用于将二进制字节转为整数。signed:有无符号
             return int.from_bytes(bytes,'big',signed=signed)
+
         def read_int(fileobj,len=2):
+            # 从二进制文件中读取一个整数。
             byte=fileobj.read(len)
             if byte==b'':raise EOFError
             num=decode(byte)
-            if num==-1:raise Stop # decode(b'\xff\xff')结果为-1
+            if num==-1:raise Stop # 如decode(b'\xff\xff')结果为-1
             return num
+
         def read_obj(fileobj,coding="utf-8"):
+            # 从二进制文件中读取一个字符串，再用eval转换成python对象。
+            # 每读取一次，fileobj的偏移量会改变，便于下一次读取
             len=decode(fileobj.read(2),signed=False)
-            if len==65535:raise Stop
+            if len==65535:raise Stop # 遇到停止标志ff ff
             return eval(str(fileobj.read(len),encoding=coding))
+
         self.data=DictFile()
         f=open(filename,'rb')
-        if f.read(3)!=b'VEC':
+        if f.read(3)!=b'VEC': # 判断文件头
             msgbox.showinfo("","不是一个vec文件")
             return
         try:
+            # 读取文件头数据
             while True:
-                key=read_obj(f)
-                value=read_obj(f)
+                key=read_obj(f) # 读取键
+                value=read_obj(f) # 读取值
                 print(key,value)
                 self.data[key]=value
         except Stop:pass
+        # 读取文件的数据部分
         self.data['data']=[]
         while True:
             line=[]
             try:
                 while True:
-                    dot=(read_int(f),read_int(f))
+                    dot=(read_int(f),read_int(f)) # 连续读取2个整数
                     line.append(dot)
             except Stop:
                 self.data['data'].append(line)
@@ -563,22 +574,22 @@ class Painter():
         self.save(filename)
         self.filename=filename
     def save_datfile(self,filename):
-        # 二进制文件
-        def encode(num,len=2,signed=True):
+        # 保存为二进制文件
+        def encode(num,len=2,signed=True):# 用于将整数转为二进制字节。
             return num.to_bytes(len,'big',signed=signed)
-        def encode_obj(obj,coding='utf-8'):
+        def encode_obj(obj,coding='utf-8'): # 将对象写入二进制文件。
             string=repr(obj)
             return encode(len(string),signed=False)+bytes(string,coding)
 
         f=open(filename,'wb')
-        f.write(b'VEC')
+        f.write(b'VEC') # 文件头
         for key in self.data:
             if not key=="data":
                 f.write(encode_obj(key)+encode_obj(self.data[key]))
         f.write(b'\xff\xff')
         for line in self.data['data']:
             for dot in line:
-                f.write(encode(dot[0])+encode(dot[1]))
+                f.write(encode(dot[0])+encode(dot[1])) # 写入数据
             f.write(b'\xff\xff')
         f.close()
     def _clearcanvas(self):

@@ -1,5 +1,5 @@
-"""使用tkinter的Canvas控件制作的画板程序, 支持新建、打开、编辑和保存文档。
-A painter that made by tkinter in Python.It supports new, open, edit and save documents."""
+"""使用tkinter的Canvas控件制作的画板程序, 支持编辑、保存文档以及文档属性等功能。
+A painter with tkinter.Canvas, supporting editing and saving documents and document attributes,etc."""
 import sys,os, pickle,json
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -68,6 +68,7 @@ class ScrolledCanvas(tk.Canvas):
         else:self._show_widgets(repack=True)
 
 class DictFile(dict):
+    # 程序用到的字典文件数据类型
     def __init__(self,filename=None,mode='r',
                  encoding="utf-8",errors="strict",
                  error_callback=None):
@@ -120,8 +121,8 @@ class PropertyWindow(tk.Toplevel):
         _load_icon(self,filename="property.ico")
         self.focus_force()
         #self.resizable(width=False,height=False)
-        # 当⽗窗⼝隐藏后，窗⼝也跟随⽗窗⼝隐藏
-        self.transient(self.master)
+        # self.grab_set() # 禁用父窗口 (实测当多个画板打开多个文档属性窗口时,会无法禁用)
+        self.transient(self.master) # 当父窗口隐藏后，窗口也跟随父窗口隐藏
         self.bind_all("<Key-Return>",self.confirm)
         self.bind("<Destroy>",
                   lambda event:setattr(self.master_,'propertywindow',None))
@@ -181,7 +182,7 @@ class PropertyWindow(tk.Toplevel):
         ttk.Button(buttons,text="取消",width=6,command=self.destroy).pack(
             side=tk.LEFT,padx=12)
         buttons.pack(side=tk.RIGHT,pady=2)
-    def confirm(self,event=None):
+    def confirm(self,event=None): # 点击“确定”按钮
         newproperty={}
         newproperty["width"]=int(self.width.get())
         newproperty["height"]=int(self.height.get())
@@ -234,9 +235,8 @@ class Painter():
         if self.filename:
             self.openfile(self.filename)
         else:
-            # self.data 存放数据
-            self.data=DictFile()
-            self.setdefault()
+            self.data=DictFile() # self.data 存放文件数据
+            self.setdefault() # 设置默认的文件数据
             self.draw()
     def load_config(self):
         #创建一个配置文件
@@ -322,7 +322,7 @@ class Painter():
         data.append([])#开始新的一根线
         #将新绘制的点坐标附加在最近绘制的线末尾
         data[-1].append((event.x,event.y))
-    def paint(self,event):
+    def paint(self,event): # 处理鼠标拖动事件
         data=self.data["data"]
         try:
             x=data[-1][-1][0];y=data[-1][-1][1]
@@ -355,7 +355,7 @@ class Painter():
                                 width=self.data["pensize"],
                                 capstyle=tk.ROUND,fill=self.data["strokecolor"])
     def config_canvas(self,data=None):
-        # 配置画布
+        # 配置画布大小、背景色
         if not data:data=self.data
         if "width" in data and "height" in data:
             self.cv.configure(width=self.data["width"],
@@ -442,16 +442,20 @@ class Painter():
         except Exception as err:onerror(err,msg="无法加载图像: "+str(err),
                                         parent=self.master)
 
-    def ask_for_save(self,quit=True):
+    def ask_for_save(self,quit=True): # 用户关闭窗口时的回调函数
         if self.file_changed:
             retval=msgbox.askyesnocancel("文件尚未保存",
                               "是否保存{}的更改?".format(
                                   os.path.split(self.filename)[1] or "当前文件"),
                                 parent=self.master)
             if not retval is None:
+                # 是
                 if retval==True:
-                    if self.save()==0:return 0  #0:cancel
-            else:return 0
+                    if self.save()==0: # 用户在保存对话框中取消
+                        return 0  #0表示cancel
+            # 否
+            else:
+                return 0
         if quit:self.quit()
     def save(self,filename=None):
         if not filename:

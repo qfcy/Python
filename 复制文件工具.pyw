@@ -8,7 +8,12 @@ sys.stderr=open("debug.log","w",encoding='utf-8')
 print("--程序启动于: %s --"%time.asctime())
 with open("config.ini") as f:
     # config.ini 第一行为源目录, 第二行为目标目录, 用";"分隔
-    # 之后每一行为一个关键词
+    # 之后每一行为一个关键词,关键词数量不限
+    # config.ini示例:
+    # E:\path1
+    # E:\path2
+    # keyword1
+    # keyword2
     paths=[os.path.realpath(p) for p in f.readline().strip().split(';')]
     dsts=[os.path.realpath(p) for p in f.readline().strip().split(';')]
     words=f.read().splitlines()

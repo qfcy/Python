@@ -1,3 +1,4 @@
+# 反编译py2exe打包exe的工具（他人编写）
 import imp
 import logging
 import marshal

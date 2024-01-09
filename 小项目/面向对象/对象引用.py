@@ -1,13 +1,14 @@
-import sys,gc,time
+import sys,gc,time,traceback
 
 def debug(dict_):
+    # 用来在交互式提示符中调试,参数dict_为命名空间
     while 1:
         s=input('>>> ').rstrip()
         if s:
             if s=='continue':break
             try:exec(compile(s,'<shell>','single'),dict_)
-            except Exception as err:
-                print(type(err).__name__+':'+str(err))
+            except Exception:
+                traceback.print_exc()
 #lst=[]
 class C:
     count=0
@@ -20,6 +21,8 @@ class C:
     def __del__(self):
         #lst.append(self)
         print("{} died".format(self),'is_finalizing',sys.is_finalizing())
+        # 提示:解释器关闭过程中产生的所有异常都会被忽略，
+        #      即显示Exception ignored in:...
         if sys.is_finalizing():
             debug(locals())
 
