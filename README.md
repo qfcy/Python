@@ -3,8 +3,6 @@
 这些是仓库中的一些亮点项目：
 
 1.图形类
-- solar_system：计算机模拟万有引力、太阳系行星运动。【Gitcode版：（已移至仓库[Python 天体引力模拟程序](https://gitcode.net/qfcy_/python-gravity-simulation)）】
-【Github版：（已移至仓库[Python 天体引力模拟程序](https://github.com/qfcy/python-gravity-simulation)）】
 - opengl：3d图形的渲染，应用简单的OpenGL技术。
 - pygame：pygame的图形渲染，如球体碰撞等。
 
