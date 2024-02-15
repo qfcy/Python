@@ -11,6 +11,10 @@ if len(sys.argv) > 1:
                 shutil.copy(pycfile, os.path.splitext(filename)[0]+".pyc" )
                 print('复制 {} 到 {}'.format(pycfile,
                                 os.path.splitext(filename)[0]+".pyc"))
+        elif os.path.isdir(filename):
+            import compileall
+            compileall.compile_dir(filename, maxlevels=50) # optimize=1
+            print('已编译文件夹 ' + filename)
 
 else:
     print("欢迎使用",__doc__,end='\n\n')
