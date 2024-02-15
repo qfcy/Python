@@ -857,7 +857,7 @@ class Editor(Tk):
 PyNotepad提供了多个反馈渠道。
 若有反馈, 可以在 github.com/qfcy/Python 或 gitcode.net/qfcy_/Python 中创建issue。
 或者在作者 blog.csdn.net/qfcy_ 的文章 "python tkinter.Text 高级用法 -- 设计功能齐全的文本编辑器" 中填写评论。
-感谢您对PyNotepad项目的支持!""")
+感谢您对PyNotepad项目的支持!""",parent=self)
 
     def loadconfig(self):
         try:
