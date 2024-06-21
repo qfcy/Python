@@ -96,6 +96,7 @@ def main():
             elif not ignore_all:
                 ans=input('删除 %s ? [Y/N/A(All)/I(Ignore all)]' % (file))
                 if ans.lower().startswith('y'):
+                    print('已删除 '+file)
                     os.remove(file)
                 elif ans.lower() in ('a','all'):
                     all_=True;os.remove(file)

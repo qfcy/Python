@@ -22,10 +22,10 @@ def _load_icon(window,filename):
             window.iconbitmap("%s\%s"%(availble_path,filename))
         except tk.TclError:pass
 
-def onerror(err,msg='',parent=None):
-            #显示错误消息
-            msgbox.showinfo(type(err).__name__,
-                            msg+str(err),parent=parent)
+def onerror(err,msg='错误: ',parent=None):
+    #显示错误消息
+    msgbox.showinfo(type(err).__name__,
+                    msg+str(err),parent=parent)
 
 class ScrolledCanvas(tk.Canvas):
     """可滚动的画布,用法与默认的tkinter.Canvas完全相同。
@@ -33,7 +33,7 @@ class ScrolledCanvas(tk.Canvas):
     def __init__(self,master,**options):
         self.frame=tk.Frame(master)
         tk.Canvas.__init__(self,self.frame,**options)
-        
+
         self.hscroll=ttk.Scrollbar(self.frame,orient=tk.HORIZONTAL,
                                    command=self.xview)
         self.vscroll=ttk.Scrollbar(self.frame,command=self.yview)
@@ -243,8 +243,7 @@ class Painter():
         if self.filename:
             self.openfile(self.filename)
         else:
-            # self.data 存放数据
-            self.data=DictFile()
+            self.data=DictFile(error_callback=onerror) # self.data 存放数据
             self.setdefault()
             self.draw()
     def load_config(self):
@@ -255,7 +254,7 @@ class Painter():
             try:
                 try:os.mkdir(os.getenv("userprofile")+"\.painter")
                 except FileExistsError:pass
-                open(self.CONFIGFILE,'w')
+                open(self.CONFIGFILE,'w').close() # 创建空白文件
             except OSError:
                 self.config=DictFile.fromdict(self.CONFIG)
             else:
@@ -305,7 +304,6 @@ class Painter():
         # 显示菜单
         self.master.config(menu=menu)
 
-        
     def create_toolbar(self):
         #创建工具栏
         self.toolbar=tk.Frame(self.master,bg="gray92")
@@ -389,7 +387,7 @@ class Painter():
                 height=self.data["height"],
                 scrollregion=(0,0,self.data["width"],self.data["height"]))
         if "backcolor" in self.data:self.cv.config(bg=self.data["backcolor"])
-    
+
     def undo(self):
         if self.data["data"]:#如果还能撤销
             self._clearcanvas()
@@ -422,7 +420,7 @@ class Painter():
         data.update(self.data)
         self.data=DictFile.fromdict(data,filename=self.filename)
         del self.data["toolbar"]
-    
+
     @classmethod
     def new(cls):
         # 新建一个文件(打开另一个画板窗口)

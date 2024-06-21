@@ -9,9 +9,8 @@ win = pyglet.window.Window(height=500, width=500)
 
 @win.event
 def on_draw():
-
-    global pos_z, rot_y
-    print('drawing')
+    global rot_y
+    print('Drawing pos:%s rot_y:%.3f' % (str(pos),rot_y))
 
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
@@ -40,8 +39,8 @@ def on_draw():
 
 @win.event
 def on_key_press(s,m):
-
-    global pos_z, rot_y
+    global rot_y
+    print("Pressed key:",s)
     if s == key.S:
         pos[2] -= 1
     if s == key.W:

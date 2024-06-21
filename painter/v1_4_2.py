@@ -1,6 +1,6 @@
 """使用tkinter的Canvas控件制作的画板程序, 支持编辑、保存文档以及文档属性等功能。
-A painter with tkinter.Canvas, supporting editing and saving documents and document attributes,etc."""
-import sys,os, pickle,json
+A painter using tkinter.Canvas, supporting editing and saving documents and modifying document properties, etc."""
+import sys, os, pickle, json, builtins
 import tkinter as tk
 import tkinter.ttk as ttk
 import tkinter.filedialog as dialog
@@ -11,9 +11,26 @@ try:
     from PIL import ImageGrab
 except:ImageGrab=None
 
-_ver="1.5"
+_ver="1.4.2"
 __email__="3076711200@qq.com"
 __author__="七分诚意 qq:3076711200"
+
+# 避免eval()函数产生安全漏洞
+_safe_built_in=vars(builtins).copy()
+_unsafe_items=["breakpoint","classmethod","staticmethod","super","compile",
+               "exec","eval","delattr","getattr","setattr","object","open",
+               "vars","globals","locals","help","input","exit","quit",
+               "copyright","license","credits","__import__","__build_class__",
+               "__loader__","__spec__","__name__","__doc__","__package__"] #,"print"]
+for _unsafe in _unsafe_items:
+    del _safe_built_in[_unsafe]
+def _safe_eval(expr, dct):
+    scope={}
+    scope.update(_safe_built_in)
+    scope.update(dct)
+    return _old_eval(expr, scope)
+_old_eval=eval
+eval=_safe_eval
 
 def _load_icon(window,filename):
     #为window加载图标
@@ -22,10 +39,10 @@ def _load_icon(window,filename):
             window.iconbitmap("%s\%s"%(availble_path,filename))
         except tk.TclError:pass
 
-def onerror(err,msg='',parent=None):
-            #显示错误消息
-            msgbox.showinfo(type(err).__name__,
-                            msg+str(err),parent=parent)
+def onerror(err,msg='错误: ',parent=None):
+    #显示错误消息
+    msgbox.showinfo(type(err).__name__,
+                    msg+str(err),parent=parent)
 
 class ScrolledCanvas(tk.Canvas):
     """可滚动的画布,用法与默认的tkinter.Canvas完全相同。
@@ -33,7 +50,7 @@ class ScrolledCanvas(tk.Canvas):
     def __init__(self,master,**options):
         self.frame=tk.Frame(master)
         tk.Canvas.__init__(self,self.frame,**options)
-        
+
         self.hscroll=ttk.Scrollbar(self.frame,orient=tk.HORIZONTAL,
                                    command=self.xview)
         self.vscroll=ttk.Scrollbar(self.frame,command=self.yview)
@@ -203,7 +220,8 @@ class Painter():
     TITLE="画板 v"+_ver
     CONFIGFILE=os.getenv("userprofile")+"\.painter\config.cfg"
     #CONFIG:包含默认的工具栏位置,背景颜色,画笔颜色,画笔粗细
-    CONFIG={"backcolor":"white","strokecolor":"black","pensize":1}
+    CONFIG={"toolbar":"bottom","backcolor":"white",
+            "strokecolor":"black","pensize":1}
     FILETYPE=("vec矢量图文件 (*.vec)","*.vec")
     _FILETYPES=(FILETYPE,("pickle文件 (*.pkl;*.pickle)","*.pkl;*.pickle"),
                 ("所有文件","*.*"))
@@ -235,7 +253,7 @@ class Painter():
         if self.filename:
             self.openfile(self.filename)
         else:
-            self.data=DictFile() # self.data 存放文件数据
+            self.data=DictFile(error_callback=onerror) # self.data 存放当前数据
             self.setdefault() # 设置默认的文件数据
             self.draw()
     def load_config(self):
@@ -246,7 +264,7 @@ class Painter():
             try:
                 try:os.mkdir(os.getenv("userprofile")+"\.painter")
                 except FileExistsError:pass
-                open(self.CONFIGFILE,'w')
+                open(self.CONFIGFILE,'w').close() # 创建空白文件
             except OSError:
                 self.config=DictFile.fromdict(self.CONFIG)
             else:
@@ -296,13 +314,15 @@ class Painter():
         # 显示菜单
         self.master.config(menu=menu)
 
-        
     def create_toolbar(self):
         #创建工具栏
         self.toolbar=tk.Frame(self.master,bg="gray92")
         self.toolbar.pack(
             side=self.config.get("toolbar",tk.BOTTOM),fill=tk.X)
         self.create_toolbutton(self.toolbar)
+        self.toolbar.bind("<Button-1>",self.toolbar_mousedown)
+        self.toolbar.bind("<B1-Motion>",self.move_toolbar)
+        self.toolbar.bind("<B1-ButtonRelease>",self.toolbar_mouseup)
     def create_toolbutton(self,master):
         #创建工具栏按钮
         self.newbtn=ttk.Button(master,width=4,text="新建",command=self.new)
@@ -316,7 +336,23 @@ class Painter():
         self.propertybtn=ttk.Button(master,width=8,text="文档属性",
                                     command=self.show_property_window)
         self.propertybtn.pack(side=tk.RIGHT)
-# ------------------------Painter最核心的方法------------------------
+    def toolbar_mousedown(self,event):
+        self.toolbar.config(bg="#cfd7e2",cursor="fleur")
+    def move_toolbar(self,event):
+        #移动工具栏
+        if event.y<-int(self.cv.winfo_height()-20):#置于窗口上方
+            self.cv.forget();self.toolbar.forget()
+            self.toolbar.pack(side=tk.TOP,fill=tk.X)
+            self.cv.pack(side=tk.TOP,expand=True,fill=tk.BOTH)
+            self.config["toolbar"]=tk.TOP
+        elif event.y>int(self.cv.winfo_height()-20):#置于窗口下方
+            self.cv.forget();self.toolbar.forget()
+            self.toolbar.pack(side=tk.BOTTOM,fill=tk.X)
+            self.cv.pack(side=tk.BOTTOM,expand=True,fill=tk.BOTH)
+            self.config["toolbar"]=tk.BOTTOM
+    def toolbar_mouseup(self,event):
+        self.toolbar.config(bg="gray92",cursor="arrow")
+# ------------------------Painter中的核心方法------------------------
     def mousedown(self,event):
         data=self.data["data"]
         data.append([])#开始新的一根线
@@ -362,7 +398,7 @@ class Painter():
                 height=self.data["height"],
                 scrollregion=(0,0,self.data["width"],self.data["height"]))
         if "backcolor" in self.data:self.cv.config(bg=self.data["backcolor"])
-    
+
     def undo(self):
         if self.data["data"]:#如果还能撤销
             self._clearcanvas()
@@ -403,7 +439,7 @@ class Painter():
         data=deepcopy(self.config)
         data.update(self.data)
         self.data=DictFile.fromdict(data,filename=self.filename)
-    
+
     @classmethod
     def new(cls):
         # 新建一个文件(打开另一个画板窗口)

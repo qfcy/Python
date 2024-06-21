@@ -5,8 +5,8 @@ NoneType=None.__class__
 class newNoneType():
     """一种新的None类型。
 与Python自带的NoneType类型相比,这种类型什么都能做,可以相加,相减,相乘,相除,被调用,等等,
-, 即支持许多"魔法"方法; 但每个方法什么也不做,直接pass。
-示例:
+, 即支持许多"魔法"方法; 但这些方法什么都不做。
+示例(部分用法):
 >>> none=newNoneType()
 >>> none
 >>> print(none)

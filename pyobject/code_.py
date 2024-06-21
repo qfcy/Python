@@ -6,13 +6,16 @@ except ImportError:
     from importlib._bootstrap import MAGIC_NUMBER
 from types import CodeType, FunctionType
 from collections import OrderedDict
-import marshal
+import marshal,io
 import dis
 import pickle
 import traceback
 from pyobject import desc
+try:
+    from uncompyle6.main import decompile
+except ImportError:decompile=None
 
-_py38=hasattr(compile('','','exec'), 'co_posonlyargcount')
+_py38=hasattr(compile('','','exec'), 'co_posonlyargcount') # 是否为Python 3.8及以上版本
 class Code:
     """
 # 用于doctest
@@ -92,7 +95,7 @@ Hello World!
         _default_args.move_to_end('co_argcount', last=False)
 
     _arg_types={key:type(value) for key,value in _default_args.items()}
-    def __init__(self,code=None,auto_update=True):
+    def __init__(self,code=None):
         super().__setattr__('_args',self._default_args.copy())
         if code is not None:
             if isinstance(code,Code):
@@ -104,7 +107,6 @@ Hello World!
                     self._args[key]=getattr(code,key)
         else:
             self._update_code()
-        self.auto_update=auto_update
     def __getattr__(self,name):
         _args=object.__getattribute__(self,'_args')
         if name in _args:
@@ -118,11 +120,10 @@ Hello World!
         if not isinstance(value,self._arg_types[name]):
             raise TypeError(name,value)
         self._args[name]=value
-        if self.auto_update: self._update_code()
+        self._update_code()
     def _update_code(self):
         self._code=CodeType(*self._args.values())
     def exec(self,globals_=None,locals_=None):
-        if not self.auto_update: self._update_code()
 
         default={"__builtins__":__builtins__,"__doc__":None,
                   "__loader__":__loader__,"__name__":"__main__"}
@@ -130,7 +131,6 @@ Hello World!
         if not locals_:locals_ = default.copy()
         return exec(self._code,globals_,locals_)
     def eval(self,globals_=None,locals_=None):
-        if not self.auto_update: self._update_code()
         return eval(self._code,globals_,locals_)
 
     # for pickle
@@ -192,6 +192,16 @@ Hello World!
         dis.show_code(self._code)
     def dis(self,*args,**kw):
         dis.dis(self._code,*args,**kw)
+    def decompile(self,version=None,*args,**kw):
+        if not decompile:
+            raise NotImplementedError("Missing uncompyle6 library")
+        out=io.StringIO()
+        if version:
+            decompile(self._code,version,out,*args,**kw)
+        else:
+            decompile(self._code,out=out,**kw)
+        out.seek(0)
+        return out.read()
 
 def interactive(mode='exec'):
     while 1:

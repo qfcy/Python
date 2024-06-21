@@ -9,32 +9,36 @@ from urllib.parse import parse_qs,unquote
 head_100=b"HTTP/1.1 100 Continue\n"
 head_ok = b"HTTP/1.1 200 OK\n"
 head_404 = b"HTTP/1.1 404 Not Found\n"
+RECV_LENGTH = 16384 # sock.recv()一次接收内容的长度
+
 def check_filetype(path): # 检查文件扩展名并返回content-type
     path=path.lower()
     if path.endswith(".htm") or path.endswith(".html"):
-        return b"content-type: text/html\n\n"
+        return b"content-type: text/html\n"
     elif path.endswith(".css"):
-        return b"content-type: text/css\n\n"
+        return b"content-type: text/css\n"
     elif path.endswith(".js") or path.endswith(".ts"):
-        return b"content-type: application/javascript\n\n"
+        return b"content-type: application/javascript\n"
     else:
-        return b"\n"
+        return b"" # 无
 
 def parse_dir(req_head): # 解析请求头中的路径
     dir = unquote(req_head.split(' ')[1])[1:] # 获取请求url后面的路径, 在请求数据第一行
     if dir == "":
         dir="."
-    if dir[-1] in ("/","\\"): # 去除末尾多余的斜杠
+    dir=dir.replace("\\","/")
+    if dir[-1]=="/": # 去除末尾多余的斜杠
         dir=dir[:-1]
     return dir
 
 def getcontent(dir): # 根据url的路径dir构造响应数据
     # 将dir转换为系统路径, 放入path
     path = os.path.join(os.getcwd(),dir)
-    #print("访问路径:",path)
     try:
+        if ".." in dir.split("/"): # 禁止访问上层目录
+            raise OSError # 引发错误, 进入except语句
         if os.path.isdir(path):
-            # 找出路径中名为index的文件
+            # 找出路径中名为index的文件，若有则直接读取
             file=None
             for f in os.listdir(path):
                 if f.split(".")[0].lower()=="index":
@@ -46,10 +50,13 @@ def getcontent(dir): # 根据url的路径dir构造响应数据
 
         head = head_ok + check_filetype(path) # 加入content-type
         # 构造响应数据
-        if os.path.isfile(path): # path是文件, 就打开文件并读取
+        if os.path.isfile(path): # --path是文件, 就打开文件并读取--
             with open(path,'rb') as f:
-                response = head + f.read()
-        elif os.path.isdir(path): # path是路径, 就显示路径中的各个文件
+                data = f.read()
+                # 响应头末尾以两个换行符(\n\n)结尾
+                head += b"Content-Length: %d\n\n" % len(data) # 加入内容长度
+                response = head + data
+        elif os.path.isdir(path): # --path是路径, 就显示路径中的各个文件--
             response = head + (f"""
 <html><head>
 <meta http-equiv="content-type" content="text/html;charset=utf-8">
@@ -81,9 +88,11 @@ def getcontent(dir): # 根据url的路径dir构造响应数据
                 file = path + ext
                 if os.path.isfile(file):
                     with open(file,'rb') as f:
-                        response = head + f.read()
+                        data = f.read()
+                        head += b"Content-Length: %d\n\n" % len(data) # 加入内容长度
+                        response = head + data
                     return response
-            raise OSError # 当做错误处理, 进入except语句
+            raise OSError # 当作错误处理, 进入except语句
 
     except OSError:
         # 返回404
@@ -101,10 +110,12 @@ def getcontent(dir): # 根据url的路径dir构造响应数据
     return response
 
 def handle_client(sock, address):# 处理客户端请求
-    request_data = sock.recv(1024).decode()
+    raw = sock.recv(RECV_LENGTH)
+    request_data = raw.decode()
     if request_data=="":return # 空数据
     #print(request_data)
 
+    # 获取请求头部数据，存入字典req_info
     lines = request_data.splitlines()
     req_head = lines[0]
     req_info = {}
@@ -118,11 +129,36 @@ def handle_client(sock, address):# 处理客户端请求
     #print("请求数据:", req_head);pprint.pprint(req_info)
 
     if req_head.startswith("POST"): # POST请求
-        data=parse_qs(lines[-1])
-        if data == {}: # post含有多个tcp数据包时
-            response=head_100 # 让客户端继续发送数据
+        content=raw.splitlines()[-1]
+        length = int(req_info.get('Content-Length',-1))
+
+        if not (content.startswith(b"------WebKitFormBoundary") and \
+            len(content)<=42): # 如果表单未以WebKitFormBoundary结束
+            if len(content)<length: # 第一次调用sock.recv接收的内容不完整，就尝试继续接收数据
+                while True:
+                    new_data = sock.recv(RECV_LENGTH)
+                    content += new_data
+                    if not new_data or len(content)>=length:break
+                #content += sock.recv(length-len(content))
+            if length != -1:content = content[:length] # 截断过长的数据
+
+        continue_send = False
+        if content.startswith(b"------WebKitFormBoundary"): # 处理上传文件等请求
+            if len(content)<=42: # 空的表单
+                content = b''
+            else:
+                t=content.splitlines()[1:-1]
+                content = b"\n".join(content.splitlines()[1:-1]) # 去除第一行和末尾的WebKitFormBoundary标识
+            print(address,"提交文件数据:",content)
         else:
-            print("提交数据:",data)
+            form=parse_qs(content.decode("utf-8"),encoding="utf-8")
+            if form == {}: # post含有多个tcp数据包时
+                response=head_100 # 让客户端继续发送数据
+                continue_send = True
+            else:
+                print(address,"提交数据:",form)
+
+        if not continue_send:
             dir=parse_dir(req_head)
             response=head_ok + f"""
 <html><head>
@@ -136,7 +172,7 @@ def handle_client(sock, address):# 处理客户端请求
     else: # GET请求
         dir=parse_dir(req_head)
         print(address,"访问路径:",dir)
-        response=getcontent(dir) # 构造响应数据
+        response=getcontent(dir) # 获取响应数据
 
     # 向客户端返回响应数据
     sock.send(response)
@@ -163,6 +199,6 @@ if __name__ == "__main__":
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
         while True:
             sock, address = server_socket.accept()
-            #executor.submit(handle_client, client_socket)
+            #executor.submit(handle_client, sock, address)
             executor.submit(_handle_client, sock, address)
     client_socket.close()

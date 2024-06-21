@@ -1,5 +1,5 @@
 """一个提供操作Python底层对象工具的模块。
-A tool of operating internal python object with some submodules.
+A utility tool with some submodules for operating internal python objects.
 
 """
 
@@ -9,7 +9,7 @@ from pprint import pprint
 
 __email__="3076711200@qq.com"
 __author__="qfcy qq:3076711200"
-__version__="1.2.1"
+__version__="1.2.3"
 
 _ignore_names=["__builtins__","__doc__"]
 __all__=["objectname","bases","describe","desc"]

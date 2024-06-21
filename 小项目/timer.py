@@ -1,6 +1,6 @@
 """A Python timer module, containing class Timer() and decorator function timer(), 
-as well as some useful related functions, can be used for program performance analysis.
-一个Python计时器模块, 其中包含Timer()类和timer()装饰器, 以及一些有用的相关函数, 可用于程序性能分析。
+as well as some useful functions that can be used for performance analysis.
+一个Python计时器模块, 其中包含Timer()类和timer()装饰器, 以及一些相关的有用函数, 可用于程序性能分析。
 
 示例1:
 import timer

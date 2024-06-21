@@ -23,10 +23,16 @@ def dump_to_pyc(pycfilename,code,pycheader=None):
 
 def process_code(co):
     co.co_lnotab = b''
-    co.co_code += b'S\x00'
+    co.co_code += b'S\x00' # 增加一个无用的RETURN_VALUE指令，用于干扰反编译器的解析
     co.co_filename = ''
     #co.co_name = ''
     co_consts = co.co_consts
+    # 无需加上co.co_posonlyargcount的值 (Python 3.8+中)
+    argcount = co.co_argcount+co.co_kwonlyargcount
+    # 修改、混淆本地变量的名称
+    co.co_varnames = co.co_varnames[:argcount] + \
+                     tuple(str(i) for i in range(argcount,len(co.co_varnames)))
+    # 递归处理自身包含的字节码
     for i in range(len(co_consts)):
         obj = co_consts[i]
         if iscode(obj):
@@ -39,7 +45,7 @@ if len(sys.argv) == 1:
 
 for file in sys.argv[1:]:
     data=open(file,'rb').read()
-    if data[16]==227:
+    if data[16]==227: # 兼容不同Python版本
         old_header=data[:16];data=data[16:]
     else:
         old_header=data[:12];data=data[12:]

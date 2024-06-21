@@ -1,4 +1,4 @@
-﻿# 本版本加入了测试中的读写二进制文件功能
+# 本版本加入了测试中的读写二进制文件功能
 """使用tkinter的Canvas控件制作的画板程序, 支持新建、打开、编辑和保存文档。
 A painter that made by tkinter in Python.It supports new, open, edit and save documents."""
 import sys,os, pickle,json
@@ -15,7 +15,6 @@ except:ImageGrab=None
 _ver="1.4.1"
 __email__="3076711200@qq.com"
 __author__="七分诚意 qq:3076711200"
-FILETYPE=("vec矢量图文件 (*.vec)","*.vec")
 
 def _load_icon(window,filename):
     #为window加载图标
@@ -30,7 +29,7 @@ class ScrolledCanvas(tk.Canvas):
     def __init__(self,master,**options):
         self.frame=tk.Frame(master)
         tk.Canvas.__init__(self,self.frame,**options)
-        
+
         self.hscroll=ttk.Scrollbar(self.frame,orient=tk.HORIZONTAL,
                                    command=self.xview)
         self.vscroll=ttk.Scrollbar(self.frame,command=self.yview)
@@ -208,6 +207,7 @@ class Painter():
     #CONFIG:包含默认的工具栏位置,背景颜色,画笔颜色,画笔粗细
     CONFIG={"toolbar":"bottom","backcolor":"white",
             "strokecolor":"black","pensize":1}
+    FILETYPE=("vec矢量图文件 (*.vec)","*.vec")
     _FILETYPES=(FILETYPE,("pickle文件 (*.pkl;*.pickle)","*.pkl;*.pickle"),
                 ("json对象 (*.json)","*.json"),("二进制文件 (*.dat)","*.dat")
                 ,("所有文件","*.*"))
@@ -299,7 +299,6 @@ class Painter():
         # 显示菜单
         self.master.config(menu=menu)
 
-        
     def create_toolbar(self):
         #创建工具栏
         self.toolbar=tk.Frame(self.master,bg="gray92")
@@ -382,7 +381,7 @@ class Painter():
                 height=self.data["height"],
                 scrollregion=(0,0,self.data["width"],self.data["height"]))
         if "backcolor" in self.data:self.cv.config(bg=self.data["backcolor"])
-    
+
     def undo(self):
         if self.data["data"]:#如果还能撤销
             self._clearcanvas()
@@ -413,7 +412,7 @@ class Painter():
                     self.config.get("backcolor",self.CONFIG["backcolor"]))
         self.data.setdefault("strokecolor",
                     self.config.get("strokecolor",self.CONFIG["strokecolor"]))
-    
+
     @classmethod
     def new(cls):
         "新建一个文件(打开另一个画板窗口)"
@@ -451,7 +450,7 @@ class Painter():
                 else:
                     raise TypeError("未知数据类型: %r"%type(obj))
             except Exception as err:onerror(err)
-            
+
         self.filename=filename
         if filename.endswith(".pkl") or filename.endswith(".pickle"):
             self.data=load(filename,'rb',use_module=pickle)
@@ -538,7 +537,7 @@ class Painter():
                 use_module.dump(dict(self.data),f)
                 f.close()
             except Exception as err:onerror(err)
-        
+
         if not filename:
             if not self.filename:
                 self.filename=dialog.asksaveasfilename(master=self.master,
@@ -550,7 +549,7 @@ class Painter():
             self.data["width"]=int(self.cv.winfo_width())-bd*2
             self.data["height"]=int(self.cv.winfo_height())-bd*2
         except tk.TclError:pass
-        
+
         if filename.endswith(".pkl") or filename.endswith(".pickle"):
             dump(filename,'wb',use_module=pickle)
         elif filename.endswith(".json"):
@@ -558,10 +557,10 @@ class Painter():
         elif filename.endswith(".dat"):
             self.save_datfile(filename)
         elif filename.endswith((".png",".jpg",".gif")):
-            x1=self.cv.winfo_rootx()
-            y1=self.cv.winfo_rooty()
-            x2=x1+self.cv.winfo_width()
-            y2=y1+self.cv.winfo_height()
+            x1=self.cv.winfo_rootx()+bd
+            y1=self.cv.winfo_rooty()+bd
+            x2=x1+self.cv.winfo_width()-bd*2
+            y2=y1+self.cv.winfo_height()-bd*2
             pic = ImageGrab.grab(bbox=(x1,y1,x2,y2))
             pic.save(filename)
         else:
@@ -570,9 +569,10 @@ class Painter():
         self.master.title("%s - %s" %(self.TITLE,self.filename))
     def save_as(self):
         filename=dialog.asksaveasfilename(master=self.master,
-                    filetypes=self._SAVE_FILETYPES)
-        self.save(filename)
-        self.filename=filename
+                    filetypes=self._SAVE_FILETYPES,defaultextension='.vec')
+        if filename:
+            self.save(filename)
+            self.filename=filename
     def save_datfile(self,filename):
         # 保存为二进制文件
         def encode(num,len=2,signed=True):# 用于将整数转为二进制字节。
@@ -597,7 +597,7 @@ class Painter():
         self.cv.delete("all")
     def clear(self):
         if not self.data["data"]:return
-        if msgbox.askyesno("提示","是否清除?"):
+        if msgbox.askyesno("提示","是否清除?",parent=self.master):
             self._clearcanvas()
             self.data["data"]=[]
             self.file_changed=True
@@ -630,7 +630,7 @@ class Painter():
         self.master.destroy()
 
     def about(self):
-        msgbox.showinfo("关于",__doc__+"\n作者: "+__author__)
+        msgbox.showinfo("关于",__doc__+"\n作者: "+__author__,parent=self.master)
 
 def main():
     try:os.chdir(os.path.split(__file__)[0])
