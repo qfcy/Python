@@ -1,6 +1,6 @@
 # http论坛程序, 主要基于post请求的处理
 
-import socket, os, time,traceback,pprint
+import socket,os,time,traceback,pprint
 import json
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import parse_qs,unquote
@@ -9,7 +9,9 @@ FILENAME="database.json" # 数据库文件名
 head_100=b"HTTP/1.1 100 Continue\n"
 head_ok = b"HTTP/1.1 200 OK\n"
 head_404 = b"HTTP/1.1 404 Not Found\n\n"
+RECV_LENGTH = 16384 # sock.recv()一次接收内容的长度
 data=[]
+post_cache={} # 各个客户端的post请求提交数据的缓存，键为(IP,端口号)，值为已发送的内容(bytes类型)
 
 def read_data():
     global data
@@ -20,7 +22,8 @@ def save_data():
         json.dump(data,f)
 
 def handle_client(sock, address):# 处理客户端请求
-    request_data = sock.recv(16384).decode()
+    raw = sock.recv(RECV_LENGTH)
+    request_data = raw.decode()
     if request_data=="":return # 空数据
 
     lines = request_data.splitlines()
@@ -36,8 +39,31 @@ def handle_client(sock, address):# 处理客户端请求
     #print("请求数据:", req_head);pprint.pprint(req_info)
 
     if req_head.startswith("POST"): # POST请求
-        form=parse_qs(lines[-1],encoding="utf-8")
-        if form != {}:
+        completed=False
+        content=raw.splitlines()[-1]
+        
+        length = int(req_info.get('Content-Length',-1))
+        if len(content)<length: # 第一次调用sock.recv接收的内容不完整，就尝试继续接收数据
+            while True:
+                new_data = sock.recv(RECV_LENGTH)
+                content += new_data
+                if not new_data or len(content)>=length:break
+            #content += sock.recv(length-len(content))
+        if length != -1:content = content[:length] # 截断过长的数据
+        # 用于处理多次POST请求（备用，一般不会遇到）
+        key = (sock, address)
+        if key not in post_cache:
+            if len(content)>=length:
+                completed=True
+            else:post_cache[key] = content
+        else:
+            old = post_cache[key]
+            content = old + content
+            if len(content)>=length:
+                completed=True
+            else:post_cache[key] = content
+        if completed:
+            form=parse_qs(content.decode("utf-8"),encoding="utf-8")
             if "text" in form: # 如果用户输入了内容
                 text = form["text"][0]
                 print("新帖:",text)
@@ -45,8 +71,8 @@ def handle_client(sock, address):# 处理客户端请求
                 save_data()
             response=head_ok + b'''
 <html><head>
-<meta http-equiv="refresh" content="0;url=/"></head></html>'''
-        else: # post含有多个tcp数据包时
+<meta http-equiv="refresh" content="0;url=/"></head></html>''' # 提交完成后刷新页面
+        else: # post含有多个tcp数据包且未完成
             response=head_100 # 让客户端继续发送数据
 
     else: # GET请求

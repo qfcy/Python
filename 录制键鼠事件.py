@@ -88,7 +88,7 @@ def key_up(event):
 
 def main():
     global last_time,hm
-    sys.stdout=open('event.py','w',encoding='utf-8')
+    sys.stdout=open('录制.py','w',encoding='utf-8')
     # create the hook mananger
     hm = pyHook.HookManager()
 

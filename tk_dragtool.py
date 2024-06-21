@@ -1,6 +1,6 @@
 """提供用鼠标拖动、缩放tkinter控件工具的模块。
-A module which supplies tools to drag and resize
-tkinter window and widgets with the mouse."""
+A module providing tools to drag and resize
+ tkinter window and widgets with the mouse."""
 import tkinter as tk
 import tkinter.ttk as ttk
 from ctypes import *

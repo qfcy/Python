@@ -1,6 +1,8 @@
+# 录制连续的PNG图像序列，如0.png,1.png,... 等
 import tkinter as tk
 import tkinter.filedialog as dialog
-import time
+import tkinter.messagebox as msgbox
+import time,os
 from PIL import Image,ImageGrab
 import cv2
 
@@ -23,14 +25,14 @@ def select_area():
         _move_label(event)
     def _release(event):
         area[2],area[3]=event.x,event.y
-        _move_label(event,"按Enter键接受, 拖曳可重新选择")
+        _move_label(event,"按Enter键确认, 拖曳可重新选择")
         window.bind_all('<Key-Return>',_accept)
     def _accept(event):
         window.destroy()
 
     window=tk.Tk()
     window.title("选择录制区域")
-    window.protocol("WM_DELETE_WINDOW",lambda:None)# 防止窗口被异常关闭
+    window.protocol("WM_DELETE_WINDOW",lambda:None) # 防止窗口被异常关闭
     cv=tk.Canvas(window,bg='white',cursor="target")
     cv.pack(expand=True,fill=tk.BOTH)
     # TODO:用cv.winfo_screenwidth()和cv.winfo_screenheight()不能很好地支持高分屏。提示: 用cv.winfo_screenmmwidth()
@@ -69,24 +71,34 @@ def main():
         flag=True
         btn_start['text']='停止'
         btn_start['command']=_stop
+    def select_path():
+        nonlocal path
+        path=dialog.askdirectory(master=root)
+        if path.strip():
+            btn_select["state"]=tk.NORMAL
     def select():
         nonlocal area
         area = select_area()
         btn_start['state']=tk.NORMAL
 
     root=tk.Tk()
-    root.title('录屏工具')
-    btn_select=tk.Button(root,text='选择录制区域',command=select)
+    root.title('PNG图像序列录屏工具')
+    root.geometry("295x170")
+    btn_select_path=tk.Button(root,text='选择保存目录',command=select_path)
+    btn_select_path.pack()
+    btn_select=tk.Button(root,text='选择录制区域',command=select,
+                         state=tk.DISABLED)
     btn_select.pack()
     btn_start=tk.Button(root,text='开始',command=_start,state=tk.DISABLED)
     btn_start.pack()
     lbl_fps=tk.Label(root,text='fps:0')
     lbl_fps.pack(fill=tk.X)
 
-    area=None
+    path="";area=None
     flag=False
     while not flag: # 等待用户点击开始
-        root.update()
+        try:root.update()
+        except tk.TclError:return # 用户关闭了窗口
     root.title('录制中')
     fps=60
     start=last=time.perf_counter()
@@ -98,10 +110,11 @@ def main():
         time.sleep(max(len(lst_image)/fps-(end-start),0))
         try:
             lbl_fps['text']='fps:'+str(1/(end-last))
-            last=end
+            last = end
             root.update()
         except tk.TclError:flag=False # 窗口被关闭时
     for i in range(len(lst_image)):
-        lst_image[i].save('%d.png'%i) # 在当前文件夹保存png图像序列
+        lst_image[i].save(os.path.join(path,'%d.png'%i)) # 在当前文件夹保存png图像序列
+    msgbox.showinfo("","保存成功！\n路径：%s"%path)
 
 if __name__=="__main__":main()

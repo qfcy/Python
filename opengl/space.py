@@ -38,19 +38,18 @@ conf = pyglet.gl.Config(sample_buffers=1, samples=4, depth_size=1)
 window = pyglet.window.Window(config=conf,fullscreen=True)
 WIDTH,HEIGHT = window.width, window.height # 获取屏幕分辨率
 @window.event
-def on_draw(flag=True): # 注意函数名, 必须是on_draw才能绑定这个事件
-    if flag:
-        glMatrixMode(GL_PROJECTION)  # 设置当前矩阵为投影矩阵
-        glLoadIdentity()
+def on_draw(): # 注意函数名, 必须是on_draw才能绑定这个事件
+    glMatrixMode(GL_PROJECTION)  # 设置当前矩阵为投影矩阵
+    glLoadIdentity()
 
-    # 透视投影, 前4个参数类似游戏中的FOV(视角大小), 
-    # 后2个参数分别是物体与相机的最近、最远距离
-        glFrustum(-2, 2, -2*HEIGHT/WIDTH, 2*HEIGHT/WIDTH, 2, 30000)
+# 透视投影, 前4个参数类似游戏中的FOV(视角大小), 
+# 后2个参数分别是物体与相机的最近、最远距离
+    glFrustum(-2, 2, -2*HEIGHT/WIDTH, 2*HEIGHT/WIDTH, 2, 30000)
 
-        glMatrixMode(GL_MODELVIEW)  # 设置当前矩阵为模型视图矩阵
-        glLoadIdentity()
+    glMatrixMode(GL_MODELVIEW)  # 设置当前矩阵为模型视图矩阵
+    glLoadIdentity()
 
-        glViewport(0, 0, WIDTH,HEIGHT)
+    glViewport(0, 0, WIDTH,HEIGHT)
 
     window.clear() # 或 glClear(GL_COLOR_BUFFER_BIT)
     glClear(GL_DEPTH_BUFFER_BIT) # 清除深度(z排序)缓冲区

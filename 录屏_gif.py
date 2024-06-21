@@ -1,5 +1,7 @@
+# 录屏工具，文件保存为GIF格式
 import tkinter as tk
 import tkinter.filedialog as dialog
+import tkinter.messagebox as msgbox
 import time
 from PIL import Image,ImageGrab
 import imageio
@@ -23,14 +25,14 @@ def select_area():
         _move_label(event)
     def _release(event):
         area[2],area[3]=event.x,event.y
-        _move_label(event,"按Enter键接受, 拖曳可重新选择")
+        _move_label(event,"按Enter键确认, 拖曳可重新选择")
         window.bind_all('<Key-Return>',_accept)
     def _accept(event):
         window.destroy()
 
     window=tk.Tk()
     window.title("选择录制区域")
-    window.protocol("WM_DELETE_WINDOW",lambda:None)# 防止窗口被异常关闭
+    window.protocol("WM_DELETE_WINDOW",lambda:None) # 防止窗口被异常关闭
     cv=tk.Canvas(window,bg='white',cursor="target")
     cv.pack(expand=True,fill=tk.BOTH)
     # TODO:用cv.winfo_screenwidth()和cv.winfo_screenheight()不能很好地支持高分屏。提示: 用cv.winfo_screenmmwidth()
@@ -69,29 +71,37 @@ def main():
         flag=True
         btn_start['text']='停止'
         btn_start['command']=_stop
+    def select_path():
+        nonlocal filename
+        filename=dialog.asksaveasfilename(master=root,
+                filetypes=[("gif动画","*.gif"),("所有文件","*.*")],
+                defaultextension='.gif')
+        if filename.strip():
+            btn_select["state"]=tk.NORMAL
     def select():
         nonlocal area
         area = select_area()
         btn_start['state']=tk.NORMAL
 
     root=tk.Tk()
-    root.title('录屏工具')
-    btn_select=tk.Button(root,text='选择录制区域',command=select)
+    root.title('GIF录屏工具')
+    root.geometry("235x125")
+    btn_select_path=tk.Button(root,text='选择保存目录',command=select_path)
+    btn_select_path.pack()
+    btn_select=tk.Button(root,text='选择录制区域',command=select,
+                         state=tk.DISABLED)
     btn_select.pack()
     btn_start=tk.Button(root,text='开始',command=_start,state=tk.DISABLED)
     btn_start.pack()
     lbl_fps=tk.Label(root,text='fps:0')
     lbl_fps.pack(fill=tk.X)
-    filename=dialog.asksaveasfilename(master=root,
-                filetypes=[("gif动画","*.gif"),("所有文件","*.*")],
-                defaultextension='.gif')
-    if not filename.strip():return
 
-    area=None
-    root.title('录制中')
+    filename="";area=None
     fps=60;flag=False
     while not flag: # 等待用户点击开始
-        root.update()
+        try:root.update()
+        except tk.TclError:return # 用户关闭了窗口
+    root.title('录制中')
     start=last=time.perf_counter()
     lst_image=[]
     while flag:
@@ -101,10 +111,11 @@ def main():
         time.sleep(max(len(lst_image)/fps-(end-start),0))
         try:
             lbl_fps['text']='fps:'+str(1/(end-last))
-            last=end
+            last = end
             root.update()
         except tk.TclError:flag=False # 窗口被关闭时
     imageio.mimsave(filename,lst_image,'GIF',
                     duration=(end-start)/len(lst_image))
+    msgbox.showinfo("","保存成功！\n路径：%s"%filename)
 
 if __name__=="__main__":main()
