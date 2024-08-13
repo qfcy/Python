@@ -1,5 +1,5 @@
 # 由其他作品改编
-import sys,os,timer
+import sys,os,timer_tool
 from tkinter import *
 from PIL import Image
 
@@ -7,7 +7,7 @@ arr=['@','#','$','%','&','?','*','o','/','{','[','(','|','!','^','~','-','_',':'
 
 def toText(imagefile):
     result=''
-    t=timer.Timer()
+    t=timer_tool.Timer()
     count=len(arr)
     for h in range(imagefile.size[1]):
         for w in range(imagefile.size[0]):
@@ -29,7 +29,7 @@ def main():
         print("Usage: %s imagefile1 imagefile2 ..."%scriptname)
         return
     for file in sys.argv[1:]:
-        t=timer.Timer()
+        t=timer_tool.Timer()
         imagefile=Image.open(file)
         oldsize=imagefile.size
         imagefile=imagefile.resize((int(imagefile.size[0]*0.9),

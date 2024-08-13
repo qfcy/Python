@@ -36,7 +36,7 @@ def _load_icon(window,filename):
     #为window加载图标
     for availble_path in sys.path+[os.path.split(__file__)[0]]:
         try:
-            window.iconbitmap("%s\%s"%(availble_path,filename))
+            window.iconbitmap("%s\\%s"%(availble_path,filename))
         except tk.TclError:pass
 
 def onerror(err,msg='错误: ',parent=None):
@@ -218,7 +218,8 @@ class PropertyWindow(tk.Toplevel):
 class Painter():
     instances=[]
     TITLE="画板 v"+_ver
-    CONFIGFILE=os.getenv("userprofile")+"\.painter\config.cfg"
+    CONFIGFILE=os.getenv("userprofile" if sys.platform=="win32" else "HOME") +\
+               "\.painter\config.cfg"
     #CONFIG:包含默认的工具栏位置,背景颜色,画笔颜色,画笔粗细
     CONFIG={"toolbar":"bottom","backcolor":"white",
             "strokecolor":"black","pensize":1}
@@ -262,7 +263,9 @@ class Painter():
         except:
             #配置文件不存在时
             try:
-                try:os.mkdir(os.getenv("userprofile")+"\.painter")
+                try:os.mkdir(
+                	os.getenv("userprofile" if sys.platform=="win32" else "HOME")+\
+                             "\.painter")
                 except FileExistsError:pass
                 open(self.CONFIGFILE,'w').close() # 创建空白文件
             except OSError:
@@ -548,6 +551,13 @@ class Painter():
         msgbox.showinfo("关于",__doc__+"\n作者: "+__author__,parent=self.master)
 
 def main():
+    if sys.platform == 'win32': # Windows下的高DPI支持
+        try:
+            import ctypes
+            PROCESS_SYSTEM_DPI_AWARE = 1
+            ctypes.OleDLL('shcore').SetProcessDpiAwareness(PROCESS_SYSTEM_DPI_AWARE)
+        except (ImportError, AttributeError, OSError):
+            pass
     try:os.chdir(os.path.split(__file__)[0])
     except OSError:pass
     if len(sys.argv)>1:

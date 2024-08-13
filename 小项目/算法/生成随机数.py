@@ -1,4 +1,5 @@
 import math
+import numpy as np
 import matplotlib.pyplot as plt
 from random import random as random2
 
@@ -30,13 +31,19 @@ for j in range(cnt):
 
 # 绘制l从0至1的数值分布直方图，检验随机数的数值分布是否均匀
 l=count(l,p,d)
-plt.bar(range(len(l)),l)
+
+linspace=np.linspace(0,d*(p/d-1),int(p/d))
+plt.bar(linspace,l,width=d)
 plt.title("自制的线性同余算法")
+plt.xlabel("数值")
+plt.ylabel("出现次数")
 plt.show()
 
 l2=[random2() for i in range(cnt)]
 # 绘制l2的数值分布直方图
 l2=count(l2,p,d)
-plt.bar(range(len(l2)),l2)
+plt.bar(linspace,l2,width=d)
 plt.title("Python内置random模块")
+plt.xlabel("数值")
+plt.ylabel("出现次数")
 plt.show()

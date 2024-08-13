@@ -179,7 +179,3 @@ ObjDict(1)
         return self.obj
     def __setstate__(self,arg):
         self.obj=arg
-
-try:
-    from pyobject.code_ import Code
-except ImportError:pass

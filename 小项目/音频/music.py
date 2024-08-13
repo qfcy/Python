@@ -2,8 +2,8 @@
 A program that using re module to analyze music score (simplified score)."""
 import winsound,math,time,re,sys
 try:
-    import timer
-except ImportError:timer=None
+    import timer_tool
+except ImportError:timer_tool=None
 try:
     import console_tool #需安装console-tool包
 except ImportError:COLORS=console_tool=None
@@ -60,7 +60,7 @@ def sinewave(times,duration=100):
         yield pitch,duration
 
 def __demo(console=None):
-    if timer:t=timer.Timer()
+    if timer_tool:t=timer_tool.Timer()
     else:t=None
     
     cost_time=0
