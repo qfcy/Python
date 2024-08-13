@@ -1,5 +1,6 @@
 # 代码一部分来自于网络
 import math
+import numpy as np
 import matplotlib.pyplot as plt
 
 class MersenneTwister:
@@ -50,9 +51,13 @@ def main():
     lst=[];cnt=10000
     for i in range(cnt):
         lst.append(mt.random())
-    lst=count(lst,1,0.001)
-    plt.bar(range(len(lst)),lst)
+    p=1;d=0.001
+    lst=count(lst,p,d)
+    linspace=np.linspace(0,d*(p/d-1),int(p/d))
+    plt.bar(linspace,lst,width=d)
     plt.title("梅森旋转算法")
+    plt.xlabel("数值")
+    plt.ylabel("出现次数")
     plt.show()
 
 if __name__ == "__main__":

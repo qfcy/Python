@@ -41,7 +41,7 @@ def run_file(filename):
     else:
         code=code.decode(encoding='utf-8').strip('\ufeff')
     backup=sys.argv
-    sys.argv=sys.argv[1:]
+    sys.argv=sys.argv[1:] # 除去原本的sys.argv[0]这个参数
     sys.path.append(os.path.split(filename)[0])
     vars_["__file__"]=filename
     try:

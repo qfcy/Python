@@ -24,7 +24,7 @@ CMDCOLORS={"black":'0',"blue":'1',"green":'2',"cyan":'3',
 RAINBOW=["red", "yellow", "green", "cyan", "blue","magenta","white"]
 
 class ColoredTextWrapper():
-    "在命令行提供带颜色的输出消息,类似于idle"
+    "在命令行提供带颜色的输出消息,类似于IDLE"
     encoding='utf-8'
     closed=False
     errors=sys.stdout.errors
@@ -117,7 +117,7 @@ bright_white."""
         self.coloredtext(*args,**kwargs)
 
     def colorize(self,stdout="blue",stderr="red",bold=True):
-        """初始化带颜色的输出,类似于idle。
+        """初始化带颜色的输出,类似于IDLE。
 colorize(stdout="cyan",stderr="magenta") - 设置输出消息为青色,错误消息为紫色。
 colorize(stderr=None) - 只设置输出消息(sys.stdout)的颜色。"""
         if stdout:

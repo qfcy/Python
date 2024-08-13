@@ -22,7 +22,7 @@ def _load_icon(window,filename):
     #为window加载图标
     for availble_path in sys.path+[os.path.split(__file__)[0]]:
         try:
-            window.iconbitmap("%s\%s"%(availble_path,filename))
+            window.iconbitmap("%s\\%s"%(availble_path,filename))
         except tk.TclError:pass
 
 class ScrolledCanvas(tk.Canvas):

@@ -1,41 +1,42 @@
-#include <Python.h>
+ï»¿#include <Python.h>
 
-PyDoc_STRVAR(convptr_doc, "convptr(pointer)"
-"\n"
-"Convert a integer pointer to a Python object,as a reverse of id()."
-"\xe5\xb0\x86\xe6\x95\xb4\xe6\x95\xb0\xe6\x8c\x87\xe9\x92\x88\xe8\xbd\xac\xe6\x8d\xa2\xe4\xb8\xbaPython\xe5\xaf\xb9\xe8\xb1\xa1\xef\xbc\x8c\xe4\xb8\x8eid()\xe7\x9b\xb8\xe5\x8f\x8d\xe3\x80\x82\n"
-"Warning:converting an invalid pointer may cause crashing."); //Unicode±íÊ¾µÄÖĞÎÄ: ½«ÕûÊıÖ¸Õë×ª»»ÎªPython¶ÔÏó£¬Óëid()Ïà·´¡£
-PyDoc_STRVAR(py_inc_doc, "py_incref(object,n)"
-"\n"
-"Increase the reference count of an object for n."
-"\xe5\xb0\x86\xe5\xaf\xb9\xe8\xb1\xa1\xe7\x9a\x84\xe5\xbc\x95\xe7\x94\xa8\xe8\xae\xa1\xe6\x95\xb0\xe5\xa2\x9e\xe5\x8a\xa0n\xe3\x80\x82\n"
-"Warning:improper using of this function may cause Python to crash.");//½«¶ÔÏóµÄÒıÓÃ¼ÆÊıÔö¼Ón¡£
-PyDoc_STRVAR(py_dec_doc, "py_decref(object,n)"
-"\n"
-"Decrease the reference count of an object for n."
-"\xe5\xb0\x86\xe5\xaf\xb9\xe8\xb1\xa1\xe7\x9a\x84\xe5\xbc\x95\xe7\x94\xa8\xe8\xae\xa1\xe6\x95\xb0\xe5\x87\x8f\xe5\xb0\x8fn\xe3\x80\x82\n"
-"Warning:improper using of this function may cause Python to crash.");//½«¶ÔÏóµÄÒıÓÃ¼ÆÊı¼õĞ¡n¡£
-
+PyDoc_STRVAR(convptr_doc, u8"convptr(pointer)"
+    u8"\n"
+    u8"Convert a integer pointer to a Python object,as a reverse of id()."
+    u8"å°†æ•´æ•°æŒ‡é’ˆè½¬æ¢ä¸ºPythonå¯¹è±¡ï¼Œä¸id()ç›¸åã€‚\n"
+    u8"Warning:Converting an invalid pointer may lead to crashes.");
+PyDoc_STRVAR(py_inc_doc, u8"py_incref(object, n)"
+    u8"\n"
+    u8"Increase the reference count of an object for n."
+    u8"å°†å¯¹è±¡çš„å¼•ç”¨è®¡æ•°å¢åŠ nã€‚\n"
+    u8"Warning:Improper use of this function may lead to crashes.");
+PyDoc_STRVAR(py_dec_doc, u8"py_decref(object, n)"
+    u8"\n"
+    u8"Decrease the reference count of an object for n."
+    u8"å°†å¯¹è±¡çš„å¼•ç”¨è®¡æ•°å‡å°nã€‚\n"
+    u8"Warning:Improper use of this function may lead to crashes.");
+PyDoc_STRVAR(py_list_in_doc, u8"list_in(obj, lst)"
+    u8"\n"
+    u8"åˆ¤æ–­objæ˜¯å¦åœ¨åˆ—è¡¨æˆ–å…ƒç»„lstä¸­ã€‚\nä¸Pythonå†…ç½®çš„obj in lstè°ƒç”¨å¤šæ¬¡\"==\"è¿ç®—ç¬¦(__eq__)ç›¸æ¯”ï¼Œ"
+    u8"æœ¬å‡½æ•°ç›´æ¥æ¯”è¾ƒå¯¹è±¡çš„æŒ‡é’ˆï¼Œæé«˜äº†æ•ˆç‡ã€‚\n");
 
 PyObject* pyobj_extension_convptr(PyObject* self, PyObject* args, PyObject* kwargs) {
     PyObject* obj = NULL;
-    unsigned long long number = 0; // longÀàĞÍÔÚ32Î»¿ÉÓÃ, ÔÚ64Î»»áÒı·¢OverflowError
+    unsigned long long number = 0; // è‹¥ä½¿ç”¨longç±»å‹ï¼Œåˆ™64ä½ä¼šå¼•å‘OverflowError
 
-    /* Parse positional and keyword arguments */
     static char* keywords[] = { "pointer", NULL };
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "L", keywords, &number)) {
         return NULL;
     }
 
-    /* Function implementation starts here */
-    obj = (PyObject*)number;
+    obj = (PyObject*)number; // è·å–æŒ‡é’ˆå¯¹åº”çš„Pythonå¯¹è±¡
     return obj;
 }
 PyObject* py_incref(PyObject* self, PyObject* args, PyObject* kwargs) {
-    PyObject *obj = NULL;
+    PyObject* obj = NULL;
     unsigned int n;
 
-    static char* keywords[] = { "object", "n", NULL};
+    static char* keywords[] = { "object", "n", NULL };
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OI", keywords, &obj, &n)) {
         return NULL;
     }
@@ -55,6 +56,33 @@ PyObject* py_decref(PyObject* self, PyObject* args, PyObject* kwargs) {
     for (unsigned int i = 0; i < n; i++) { Py_DECREF(obj); }
     return Py_None;
 }
+PyObject* list_in(PyObject* self, PyObject* args, PyObject* kwargs) {
+    PyObject *obj, *lst;
+
+    // è§£æè¾“å…¥å‚æ•°ï¼Œå‚æ•°ä¸ºå¾…æŸ¥æ‰¾å¯¹è±¡å’Œä¸€ä¸ªåºåˆ—(åˆ—è¡¨æˆ–å…ƒç»„)
+    static char* keywords[] = { "obj", "lst", NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO", keywords, &obj, &lst)) {
+        return NULL;
+    }
+
+    // ç¡®ä¿è¾“å…¥æ˜¯åˆ—è¡¨æˆ–å…ƒç»„
+    if (!PyList_Check(lst) && !PyTuple_Check(lst)) {
+        PyErr_SetString(PyExc_TypeError, "Expected a list or a tuple");
+        return NULL;
+    }
+
+    Py_ssize_t n = PySequence_Size(lst);
+    PyObject* item;
+
+    for (Py_ssize_t i = 0; i < n; ++i) {
+        item = PySequence_GetItem(lst, i);  // è·å–ç´¢å¼•içš„å…ƒç´ 
+        if (obj == item) {
+            Py_RETURN_TRUE;
+        }
+    }
+
+    Py_RETURN_FALSE;
+}
 
 /*
  * List of functions to add to pyobj_extension in exec_pyobj_extension().
@@ -63,6 +91,7 @@ static PyMethodDef pyobj_extension_functions[] = {
     { "convptr", (PyCFunction)pyobj_extension_convptr, METH_VARARGS | METH_KEYWORDS, convptr_doc },
     { "py_incref", (PyCFunction)py_incref, METH_VARARGS | METH_KEYWORDS, py_inc_doc },
     { "py_decref", (PyCFunction)py_decref, METH_VARARGS | METH_KEYWORDS, py_dec_doc },
+    { "list_in", (PyCFunction)list_in, METH_VARARGS | METH_KEYWORDS, py_list_in_doc },
     { NULL, NULL, 0, NULL } /* marks end of array */
 };
 
@@ -70,7 +99,7 @@ static PyMethodDef pyobj_extension_functions[] = {
  * Initialize pyobj_extension. May be called multiple times, so avoid
  * using static state.
  */
-int exec_pyobj_extension(PyObject *module) {
+int exec_pyobj_extension(PyObject* module) {
     PyModule_AddFunctions(module, pyobj_extension_functions);
 
     PyModule_AddStringConstant(module, "__author__", "qfcy");
@@ -80,10 +109,7 @@ int exec_pyobj_extension(PyObject *module) {
 }
 
 /* Documentation for pyobj_extension. */
-
-// Ä£¿é pyobj_extension - pyobject¿âµÄÀ©Õ¹Ä£¿é, Ö÷Òª°üº¬²Ù×÷Pythonµ×²ã¶ÔÏóÒıÓÃ, ÒÔ¼°¶ÔÏóÖ¸ÕëµÄº¯Êı, Ê¹ÓÃ CÓïÑÔ±àĞ´
-PyDoc_STRVAR(pyobj_extension_doc, "\xe6\xa8\xa1\xe5\x9d\x97 pyobj_extension - pyobject\xe5\xba\x93\xe7\x9a\x84\xe6\x89\xa9\xe5\xb1\x95\xe6\xa8\xa1\xe5\x9d\x97, \xe4\xb8\xbb\xe8\xa6\x81\xe5\x8c\x85\xe5\x90\xab\xe6\x93\x8d\xe4\xbd\x9cPython\xe5\xba\x95\xe5\xb1\x82\xe5\xaf\xb9\xe8\xb1\xa1\xe5\xbc\x95\xe7\x94\xa8, \xe4\xbb\xa5\xe5\x8f\x8a\xe5\xaf\xb9\xe8\xb1\xa1\xe6\x8c\x87\xe9\x92\x88\xe7\x9a\x84\xe5\x87\xbd\xe6\x95\xb0, \xe4\xbd\xbf\xe7\x94\xa8 C\xe8\xaf\xad\xe8\xa8\x80\xe7\xbc\x96\xe5\x86\x99");
-
+PyDoc_STRVAR(pyobj_extension_doc, u8"æ¨¡å— pyobj_extension - pyobjectåº“çš„Cæ‰©å±•æ¨¡å—, æä¾›ä¸€ç³»åˆ—æ“ä½œPythonå¯¹è±¡åº•å±‚çš„å‡½æ•°ã€‚");
 
 static PyModuleDef_Slot pyobj_extension_slots[] = {
     { Py_mod_exec, exec_pyobj_extension },

@@ -48,8 +48,8 @@ def search(filename,path,minsize=None,maxsize=None):
                 yield file
 
 def test():
-    "找出目录(默认为系统盘)中大的文件。"
-    print("搜索中 ...")
+    "找出目录(默认为系统盘)中的大文件。"
+    print("搜索大文件中 ...")
     start_time=time.perf_counter()
     min_size=2**27 # 128MB
     files=[]

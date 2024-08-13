@@ -1,27 +1,15 @@
-"""提供用鼠标拖动、缩放tkinter控件工具的模块。
-A module providing tools to drag and resize
- tkinter window and widgets with the mouse."""
+"""提供用鼠标拖动、缩放tkinter控件工具的跨平台模块。
+A cross-platform module providing tools to drag
+and resize tkinter windows and widgets with the mouse."""
 import tkinter as tk
 import tkinter.ttk as ttk
-from ctypes import *
 
 __author__="qfcy"
-__version__="1.1.2"
+__version__="1.1.4"
 
-class _PointAPI(Structure): # 用于getpos()中API函数的调用
-    _fields_ = [("x", c_ulong), ("y", c_ulong)]
-
-def getpos():
-    # 调用API函数获取当前鼠标位置。返回值以(x,y)形式表示。
-    po = _PointAPI()
-    windll.user32.GetCursorPos(byref(po))
-    return int(po.x), int(po.y)
-def xpos():return getpos()[0]
-def ypos():return getpos()[1]
-
-# tkinter控件支持作为字典键。
-# bound的键是dragger, 值是包含1个或多个绑定事件的列表, 值用于存储控件绑定的数据
-# 列表的一项是对应tkwidget和其他信息的元组
+# tkinter控件的对象能够作为字典键。
+# bound的键是dragger, 值是一个列表, 包含了若干个绑定事件, 用于存储绑定数据
+# 列表的每个项是一个元组, 包含了tkwidget和其他绑定参数
 bound = {}
 def __add(wid,data):# 添加绑定数据
     bound[wid]=bound.get(wid,[])+[data]
@@ -42,7 +30,7 @@ def __get(wid,key=''): # 用于从bound中获取绑定数据
         if bound[wid][i][0]==key:
             return bound[wid][i]
 def move(widget,x=None,y=None,width=None,height=None):
-    "移动控件或窗口widget, 参数皆可选。"
+    "移动控件或窗口widget至某坐标, 参数都为可选参数。"
     x=x if x!=None else widget.winfo_x()
     y=y if y!=None else widget.winfo_y()
     width=width if width!=None else widget.winfo_width()
@@ -58,8 +46,8 @@ def _mousedown(event):
     lst=bound[event.widget]
     for data in lst: # 开始拖动时, 在每一个控件记录位置和控件尺寸
         widget=data[1]
-        widget.mousex,widget.mousey = getpos()
-        widget.startx,widget.starty = widget.winfo_x(),widget.winfo_y()
+        widget.mousex,widget.mousey = widget.winfo_pointerxy() # 获取初始鼠标位置
+        widget.startx,widget.starty = widget.winfo_x(),widget.winfo_y() # 获取相对坐标
         widget.start_w=widget.winfo_width()
         widget.start_h=widget.winfo_height()
 def _drag(event):
@@ -68,18 +56,18 @@ def _drag(event):
     for data in lst: # 多个绑定
         if data[0]!='drag':return
         widget=data[1]
-        dx = xpos()-widget.mousex # 计算鼠标当前位置和开始拖动时位置的差距
+        dx = widget.winfo_pointerx()-widget.mousex # 计算鼠标当前位置和开始拖动时位置的差距
         # 注: 鼠标位置不能用event.x和event.y
         # event.x,event.y与控件的位置、大小有关，不能真实地反映鼠标移动的距离差值
-        dy = ypos()-widget.mousey 
+        dy = widget.winfo_pointery()+widget.winfo_vrooty()-widget.mousey 
         move(widget,widget.startx + dx if data[2] else None,
                     widget.starty + dy if data[3] else None)
 def _resize(event):
     data=__get(event.widget,'resize')
     if data is None:return
     widget=data[1]
-    dx = xpos()-widget.mousex # 计算位置差
-    dy = ypos()-widget.mousey
+    dx = widget.winfo_pointerx()-widget.mousex # 计算位置差
+    dy = widget.winfo_pointery()-widget.mousey
 
     type = data[0].lower()
     minw,minh = data[2:4]
@@ -137,6 +125,7 @@ def test():
         x,y=func()
         b.place(x=x,y=y,width=size,height=size)
         b.bind('<B1-Motion>',adjust_button,add='+')
+        b.bind('<B1-ButtonRelease>',adjust_button,add='+')
         btns.append(b)
     def adjust_button(event=None):
         # 改变大小或拖动后,调整手柄位置
@@ -147,8 +136,10 @@ def test():
     root.title("Test")
     root.geometry('500x350')
     btn=ttk.Button(root,text="Button")
+    draggable(root)
     draggable(btn)
     btn.bind('<B1-Motion>',adjust_button,add='+')
+    btn.bind('<B1-ButtonRelease>',adjust_button,add='+')
     x1=20;y1=20;x2=220;y2=170;size=10
     btn.place(x=x1,y=y1,width=x2-x1,height=y2-y1)
     root.update()

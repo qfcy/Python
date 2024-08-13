@@ -3,20 +3,20 @@ as well as some useful functions that can be used for performance analysis.
 一个Python计时器模块, 其中包含Timer()类和timer()装饰器, 以及一些相关的有用函数, 可用于程序性能分析。
 
 示例1:
-import timer
-t=timer.Timer() #初始化Timer对象
+import timer_tool
+t=timer_tool.Timer() #初始化Timer对象
 do_something()
 t.printtime() #输出执行do_something()所用时间 (也可使用t.gettime()获取所用时间)
 
 示例2:
 #退出with语句时自动打印出所用时间。
-import timer
-with timer.Timer(): #在这里开始计时
+import timer_tool
+with timer_tool.Timer(): #在这里开始计时
     do_something()
 
 示例3:
  # 为某个函数计时
-from timer import timer
+from timer_tool import timer
 @timer
 def func():
     print("Hello World!")
@@ -24,7 +24,7 @@ def func():
 示例4:
 # 程序精确地延迟一段时间
 from time import sleep
-from timer import sleep as sleep2
+from timer_tool import sleep as sleep2
 sleep(0.0001)
 sleep2(0.0001)
 # 经测试表明, time模块的sleep()函数与本模块的函数相比, 有明显的延迟
@@ -35,8 +35,8 @@ from types import FunctionType
 from inspect import isgeneratorfunction
 
 __email__ = "3076711200@qq.com"
-__author__ = "七分诚意 qq:3076711200"
-__version__ = "1.2.2"
+__author__ = "qfcy qq:3076711200"
+__version__ = "1.2.4"
 __all__ = ["Timer","timer","sleep"]
 
 perf_counter = time.perf_counter
@@ -99,14 +99,14 @@ def func(args):
                 yield result  # 生成原来生成器的结果
                 count += 1
             total = perf_counter() - start
-            avg = total / count
-            print(msg.format(func=fun.__name__, avg=avg, time=total),
+            avg = total / count if count > 0 else total
+            print(msg.format(func=fun.__name__, avg=avg, count=count, total=total),
                   file=file, flush=flush)
 
         return _gen if isgeneratorfunction(fun) else _call
 
     default_msg = "调用{func}用时:{time:.8f}秒"
-    default_gen_msg = "调用{func} 生成一个值平均用时:{avg:.8f}秒 总用时:{time:.8f}"
+    default_gen_msg = "调用{func} 生成单个值平均间隔: {avg:.8f}秒, {count} 个值总用时:{total:.8f}"
 
     if isinstance(msg, FunctionType):  # 直接使用@timer
         fun = msg
@@ -119,9 +119,8 @@ def func(args):
 
 def sleep(seconds): # 精确地等待一段时间
     start = perf_counter()
-    while True:
-        if perf_counter()-start >= seconds:
-            return
+    while perf_counter()-start < seconds:
+        pass
 
 def test1():  # 测试Timer类
     t = Timer()
@@ -149,11 +148,11 @@ def test3_contrast():  # 对照试验
 
 
 @timer
-def test4_contrast():  # 对照组, 测试time.sleep()函数
-    time.sleep(0.00005)  # 结果是0.01秒, 和test2的结果对照, 说明time模块的sleep()函数有一定延迟
+def test4_contrast(t):  # 对照组, 测试time.sleep()函数
+    time.sleep(t)  # 结果是0.01秒, 和test2的结果对照, 说明time模块的sleep()函数有一定延迟
 @timer
-def test4():  # 测试本模块sleep()函数的精确度
-    sleep(0.00005)
+def test4(t):  # 测试本模块sleep()函数的精确度
+    sleep(t)
 
 if __name__ == "__main__":
     print("1.测试Timer()类")
@@ -166,7 +165,8 @@ if __name__ == "__main__":
     list(test3_1())
     test3_contrast()
     print()
-    print("4.测试本模块sleep()函数的精确度")
-    test4_contrast()
-    print("结果和test2的结果对照, 说明time模块的sleep()函数有一定延迟")
-    test4()
+    t=0.00005
+    print(f"4.测试本模块sleep()函数的精确度，等待{t:.6f}秒")
+    test4_contrast(t)
+    test4(t)
+    print("两者对照, 说明time模块的sleep()函数有一定延迟")

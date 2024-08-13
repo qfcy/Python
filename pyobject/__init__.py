@@ -1,15 +1,14 @@
-"""一个提供操作Python底层对象工具的模块。
+"""一个提供操作Python对象底层工具的模块。
 A utility tool with some submodules for operating internal python objects.
 
 """
-
 import sys
 from warnings import warn
 from pprint import pprint
 
 __email__="3076711200@qq.com"
 __author__="qfcy qq:3076711200"
-__version__="1.2.3"
+__version__="1.2.4"
 
 _ignore_names=["__builtins__","__doc__"]
 __all__=["objectname","bases","describe","desc"]
@@ -39,7 +38,7 @@ tab:缩进的空格数,默认为4。'''
         print(*obj.__bases__,sep=',')
         for cls in obj.__bases__:
             bases(cls,level,tab)
-        
+
 
 def _shortrepr(obj,maxlength=150):
     result=repr(obj)
@@ -57,14 +56,15 @@ def _shortrepr(obj,maxlength=150):
 ##                value=getattr(obj,attr)
 ##                pprint("{}:{}".format(attr,value),**kwargs)
 ##                if needhelp:help(value)
-def describe(obj,level=0,maxlevel=1,tab=4,verbose=False,file=sys.stdout):
+def describe(obj,level=0,maxlevel=1,tab=4,verbose=False,file=None):
     '''"描述"一个对象,即打印出对象的各个属性。
 参数说明:
 maxlevel:打印对象属性的层数。
 tab:缩进的空格数,默认为4。
 verbose:一个布尔值,是否打印出对象的特殊方法(如__init__)。
-file:一个类似文件的对象。
+file:一个类似文件的对象，用于打印输出。
 '''
+    if file is None:file=sys.stdout
     if level==maxlevel:
         result=repr(obj)
         if result.startswith('[') or result.startswith('{'):pprint(result)
@@ -89,25 +89,25 @@ file:一个类似文件的对象。
                     print("<AttributeError!>",end='',file=file)
 
 desc=describe #别名
-# 导入其他模块中的函数和类
+# 导入其他子模块中的函数和类
 try:
-    from .browser import browse
+    from pyobject.browser import browse
     __all__.append("browse")
-# (ImportError,SystemError): 修复Python 3.4的bug
-except (ImportError,SystemError):warn("Failed to import module .browser .")
+# SystemError: 修复Python 3.4下的bug
+except (ImportError,SystemError):warn("Failed to import module pyobject.browser.")
 try:
-    from .search import make_list,search #,test_make_list,test_search
-    __all__.extend(["make_list","search"])
+    from pyobject.search import make_list,make_iter,search #,test_make_list,test_search
+    __all__.extend(["make_list","make_iter","search"])
 # 同上
-except (ImportError,SystemError):warn("Failed to import module .search .")
+except (ImportError,SystemError):warn("Failed to import pyobject.search.")
 
 try:
-    from .code_ import Code
+    from pyobject.code_ import Code
     __all__.append("Code")
-except (ImportError,SystemError):warn("Failed to import module .code.")
+except (ImportError,SystemError):warn("Failed to import pyobject.code_.")
 try:
     from pyobj_extension import *
-    __all__.extend(["convptr","py_incref","py_decref"])
+    __all__.extend(["convptr","py_incref","py_decref","list_in"])
 except ImportError:warn("Failed to import module pyobj_extension.")
 
 def test():
@@ -119,4 +119,4 @@ def test():
         return 1
     else:return 0
 
-if __name__=="__main__":test()
+if __name__=="__main__":sys.exit(test())

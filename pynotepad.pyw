@@ -41,7 +41,7 @@ except ImportError:chardet=None
 
 __email__="3076711200@qq.com"
 __author__="qfcy qq:3076711200"
-__version__="1.3.4";__doc__=__doc__%__version__ # 在__doc__中加入版本信息
+__version__="1.3.5";__doc__=__doc__%__version__ # 在__doc__中加入版本信息
 
 def view_hex(byte):
     result=''
@@ -284,9 +284,13 @@ class Editor(Tk):
     FONTSIZES=8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 36, 48
     NORMAL_FONT='宋体'
     NORMAL_FONTSIZE=11
-    TEXT_BG="SystemWindow";TEXT_FG="SystemWindowText" # 系统默认颜色
+    if sys.platform=="win32":
+    	TEXT_BG="SystemWindow";TEXT_FG="SystemWindowText" # 系统默认颜色
+    	CONFIGFILE=os.getenv("userprofile") + "\\.pynotepad.pkl"
+    else:
+    	TEXT_BG="white";TEXT_FG="black" # TODO:获取其他系统的默认颜色
+    	CONFIGFILE=os.getenv("HOME") + "\\.pynotepad.pkl"
     FILETYPES=[("所有文件","*.*")]
-    CONFIGFILE=os.getenv("userprofile")+"\\.pynotepad.pkl"
     AUTOWRAP=CHAR
     SHOW_STATUS=True
 
@@ -558,9 +562,9 @@ class Editor(Tk):
         self.set_tag_bg()
     def reset_theme(self):
         self.contents["bg"]=self.txt_decoded["bg"]\
-                    =self.hexdata["bg"] = "SystemWindow"
+                    =self.hexdata["bg"] = self.TEXT_BG
         self.contents["fg"]=self.txt_decoded["fg"]\
-                    =self.hexdata["fg"] = "SystemWindowText"
+                    =self.hexdata["fg"] = self.TEXT_FG
         self.set_tag_bg()
     def set_tag_bg(self): # 在代码高亮中, 设置tag的背景色, 使其与文本框背景色匹配
         for tag in self.contents.tag_names():
@@ -893,6 +897,13 @@ PyNotepad提供了多个反馈渠道。
             Editor(item.decode('ansi'))
 
 def main():
+    if sys.platform == 'win32': # Windows下的高DPI支持
+        try:
+            import ctypes
+            PROCESS_SYSTEM_DPI_AWARE = 1
+            ctypes.OleDLL('shcore').SetProcessDpiAwareness(PROCESS_SYSTEM_DPI_AWARE)
+        except (ImportError, AttributeError, OSError):
+            pass
     if len(sys.argv)>1:
         for arg in sys.argv[1:]:
             try:

@@ -5,11 +5,10 @@ import tkinter.ttk as ttk
 import tkinter.messagebox as msgbox
 import tkinter.simpledialog as simpledialog
 from inspect import isfunction,ismethod,isgeneratorfunction,isgenerator,iscode
-try: from . import objectname,_shortrepr
-# ImportError,SystemError: 修复Python 3.4中的bug
-except (ImportError,SystemError):from __init__ import objectname,_shortrepr
+try:from pyobject import objectname,_shortrepr
+except ImportError:from __init__ import objectname,_shortrepr
 
-_IMAGE_PATH=(os.path.split(__file__)[0]+"\\images")
+_IMAGE_PATH=os.path.join(os.path.split(__file__)[0],"images")
 
 def isfunc(obj):
     # 判断一个对象是否为函数或方法
@@ -18,8 +17,11 @@ def isfunc(obj):
     func_types=[types.LambdaType,types.BuiltinFunctionType,
                 types.BuiltinMethodType,typing.WrapperDescriptorType,
                 typing.MethodWrapperType,typing.MethodDescriptorType]
-    if sys.version_info.minor>=7: # Python 3.7及以上
-        func_types.append(types.ClassMethodDescriptorType)
+    if sys.version_info.minor>=7:
+        ClassMethodDescriptorType=types.ClassMethodDescriptorType
+    else: # 3.7之前的旧版本
+        ClassMethodDescriptorType=type(dict.__dict__['fromkeys'])
+    func_types.append(ClassMethodDescriptorType)
     for type in func_types:
         if isinstance(obj,type):
             return True
@@ -67,7 +69,7 @@ class ObjectBrowser():
 
         self.master.title(self.title)
         try:
-            self.master.iconbitmap(_IMAGE_PATH+r"\python.ico")
+            self.master.iconbitmap(os.path.join(_IMAGE_PATH,"python.ico"))
         except tk.TclError:pass
         self.load_image()
         self.create_widgets()
@@ -97,7 +99,9 @@ class ObjectBrowser():
 
         self.functions_tag=self.tvw.insert('',index=0,text="函数、方法")
         self.attributes_tag=self.tvw.insert('',index=1,text="属性")
+        self.tvw.item(self.attributes_tag,open=True) # 展开项
         self.classes_tag=self.tvw.insert('',index=2,text="类")
+        self.tvw.item(self.classes_tag,open=True)
         self.lst_tag=self.tvw.insert('',index=3,text="列表数据")
         self.dict_tag=self.tvw.insert('',index=4,text="字典数据")
         editor = ttk.Labelframe(self.master, text='编辑值',
@@ -118,33 +122,33 @@ class ObjectBrowser():
     def load_image(self):
         # 加载images文件夹下的图片
         self.back_image=tk.PhotoImage(master=self.master,
-                                     file=_IMAGE_PATH+r"\back.gif")
+                            file=os.path.join(_IMAGE_PATH,"back.gif"))
         self.forward_image=tk.PhotoImage(master=self.master,
-                                     file=_IMAGE_PATH+r"\forward.gif")
+                            file=os.path.join(_IMAGE_PATH,"forward.gif"))
         self.refresh_image=tk.PhotoImage(master=self.master,
-                                     file=_IMAGE_PATH+r"\refresh.gif")
+                            file=os.path.join(_IMAGE_PATH,"refresh.gif"))
         self.obj_image=tk.PhotoImage(master=self.master,
-                                     file=_IMAGE_PATH+r"\python.gif")
+                            file=os.path.join(_IMAGE_PATH,"python.gif"))
         self.num_image=tk.PhotoImage(master=self.master,
-                                     file=_IMAGE_PATH+r"\number.gif")
+                            file=os.path.join(_IMAGE_PATH,"number.gif"))
         self.str_image=tk.PhotoImage(master=self.master,
-                                     file=_IMAGE_PATH+r"\string.gif")
+                            file=os.path.join(_IMAGE_PATH,"string.gif"))
         self.list_image=tk.PhotoImage(master=self.master,
-                                     file=_IMAGE_PATH+r"\list.gif")
+                            file=os.path.join(_IMAGE_PATH,"list.gif"))
         self.empty_list_image=tk.PhotoImage(master=self.master,
-                                     file=_IMAGE_PATH+r"\empty_list.gif")
+                            file=os.path.join(_IMAGE_PATH,"empty_list.gif"))
         self.tuple_image=tk.PhotoImage(master=self.master,
-                                     file=_IMAGE_PATH+r"\tuple.gif")
+                            file=os.path.join(_IMAGE_PATH,"tuple.gif"))
         self.empty_tuple_image=tk.PhotoImage(master=self.master,
-                                     file=_IMAGE_PATH+r"\empty_tuple.gif")
+                            file=os.path.join(_IMAGE_PATH,"empty_tuple.gif"))
         self.dict_image=tk.PhotoImage(master=self.master,
-                                     file=_IMAGE_PATH+r"\dict.gif")
+                            file=os.path.join(_IMAGE_PATH,"dict.gif"))
         self.empty_dict_image=tk.PhotoImage(master=self.master,
-                                     file=_IMAGE_PATH+r"\empty_dict.gif")
+                            file=os.path.join(_IMAGE_PATH,"empty_dict.gif"))
         self.func_image=tk.PhotoImage(master=self.master,
-                                     file=_IMAGE_PATH+r"\function.gif")
+                            file=os.path.join(_IMAGE_PATH,"function.gif"))
         self.code_image=tk.PhotoImage(master=self.master,
-                                     file=_IMAGE_PATH+r"\codeobject.gif")
+                            file=os.path.join(_IMAGE_PATH,"codeobject.gif"))
     def clear(self):
         # 清除Treeview的数据
         for root in self.tvw.get_children(""): # 获取根项
@@ -191,7 +195,7 @@ class ObjectBrowser():
                                     text=attr, image=image,
                                     values=(value,)) # values从第二列开始
                 except Exception as error: # 显示错误消息
-                    value='<{}!>'.format(type(error).__name__)
+                    value='<{}: {}>'.format(type(error).__name__,str(error))
                     self.tvw.insert(self.attributes_tag, tk.END,
                                     text=attr, image=self.obj_image,
                                     values=(value,),tags=("error",))
@@ -202,7 +206,7 @@ class ObjectBrowser():
                             text="__bases__", image=self._get_image(bases),
                             values=(repr(bases),))
         # 添加列表数据
-        if isinstance(obj,list) or isinstance(obj,tuple):
+        if isinstance(obj,(list,tuple)):
             for i in range(len(obj)):
                 index=str(i)
                 try:
@@ -252,7 +256,14 @@ class ObjectBrowser():
         else:
             parent=self.tvw.parent(selection[0])
             if parent:
-                value_str=self.tvw.item(selection[0])["values"][0]
+                #value_str=self.tvw.item(selection[0])["values"][0] # 现已弃用，由于使用了_shortrepr()
+                attr=self.tvw.item(selection)["text"]
+                if parent==self.dict_tag:
+                    value_str=repr(self.obj[eval(attr)])
+                elif parent==self.lst_tag:
+                    value_str=repr(self.obj[int(attr)])
+                else:
+                    value_str=repr(getattr(self.obj,attr))
                 self.editor.delete(0,tk.END)
                 self.editor.insert(0,value_str)
                 if parent==self.lst_tag and isinstance(self.obj,tuple):
@@ -355,7 +366,7 @@ class ObjectBrowser():
                 # 对象的属性可能有改变，重新获取对象的属性
                 scope={self.rootobj_name:self.root_obj} # 获取第一个浏览的根对象及其名称
                 object=eval(path,scope)
-            except Exception:
+            except Exception: # 默认使用新获取的对象，只有出错时，才使用旧的对象
                 object=obj
         else:object=obj
         self.browse(object,path)
@@ -368,7 +379,7 @@ class ObjectBrowser():
             self.history_index+=1
             self.navigate_history()
 
-def browse(object,verbose=False,name="obj",
+def browse(object,verbose=True,name="obj",
            mainloop=True,multi_window=False,refresh_history=True,
            root_obj=None,rootobj_name=None):
     """以图形界面浏览一个Python对象。

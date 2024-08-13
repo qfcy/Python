@@ -43,7 +43,7 @@ def test():
 
 def __ask_replace(filename):
     if not os.path.isfile(filename):return True
-    result=input("文件 %s已存在,要替换它吗? "%filename)
+    result=input("文件 %s已存在,要替换它吗? (Y/N) "%filename)
     return result.lower().startswith('y')
 def main():
     if len(sys.argv)==1:
