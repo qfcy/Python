@@ -34,7 +34,7 @@
 - ulang：应用pyinstxtractor和uncompyle6工具提取的木兰编程语言源代码。
 - event：调用API函数模拟键盘、鼠标事件，可用于游戏外挂等。
 - pyobject：关于Python对象内部结构、python字节码(bytecode)的库，包含pyc文件的压缩、加壳和脱壳的工具。
-- timer.py：Python计时器模块，可用于程序性能分析。
+- timer_tool.py：Python计时器模块，可用于程序性能分析。
 - catch_turtle：使用turtle库开发的一款游戏。
 - 小项目 \ turtle：编写的turtle小程序。
 
