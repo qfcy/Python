@@ -1,63 +1,83 @@
 # http文件服务器程序, 可用于在本地创建一个网站，基于socket库
 # 使用方法：将本文件"http文件服务器.py"和html文件(如:index.html)放在同一个目录
 # 然后运行"http文件服务器.py"即可
+# 命令行：python http文件服务器.py <端口号(可选)>
 
 import socket, sys, os, time, traceback, pprint
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import parse_qs, unquote
-import chardet
+import chardet,mimetypes
 
-HEAD_100=b"HTTP/1.1 100 Continue\n"
+HEAD_100 = b"HTTP/1.1 100 Continue\n"
 HEAD_OK = b"HTTP/1.1 200 OK\n"
 HEAD_404 = b"HTTP/1.1 404 Not Found\n"
 RECV_LENGTH = 16384 # sock.recv()一次接收内容的长度
-RESPONSE_LENGTH = 1<<19 # 0.5MB
-SEND_SPEED=10 # 大文件的发送速度限制，单位为MB/s，设为负数则禁用限速
+CHUNK_SIZE = 1<<19 # 0.5MB
+SEND_SPEED = 10 # 大文件的发送速度限制，单位为MB/s，设为非正数则不限速
 
-def convert_bytes(num): # 将整数转换为字节
+def _read_file_helper(head,file,size): # 分段读取文件使用的生成器
+    yield head
+    while True:
+        data=file.read(size)
+        if not data:
+            file.close()
+            return
+        yield data
+def _slice_helper(data,size):
+    n=len(data)
+    for i in range(0,n,size):
+        yield data[i:i+size]
+def convert_bytes(num): # 将整数转换为数据单位
     units = ["", "K", "M", "G", "T", "P", "E", "Z", "Y"]
 
-    for unit in units:  
-        if num < 1024:  
-            return f"{num:.2f}{unit}B"  
+    for unit in units:
+        if num < 1024:
+            return f"{num:.2f}{unit}B"
         num /= 1024
     return f"{num:.2f}{units[-1]}B"
 
 def check_filetype(path): # 检查文件扩展名并返回content-type
-    path=path.lower()
-    if path.endswith(".htm") or path.endswith(".html"):
-        return b"Content-Type: text/html\n"
-    elif path.endswith(".css"):
-        return b"Content-Type: text/css\n"
-    elif path.endswith(".js") or path.endswith(".ts"):
-        return b"Content-Type: application/javascript\n"
-    else:
+    mime_type=mimetypes.guess_type(path)[0]
+    if mime_type is None: # 未知类型
+        return b"" # 不返回类型，由浏览器自行检测
+    if mime_type.lower().startswith("text"):
         with open(path,"rb") as f:
-            head=f.read(512) # 读取文件头，并检测编码
-        detected=chardet.detect(head)
-        if detected["confidence"]>0.95:
+            head=f.read(512) # 读取文件头部，并检测编码
+            detected=chardet.detect(head)
             coding=detected["encoding"]
-            return b"Content-Type: text/plain;charset=%s\n"%coding.encode("utf-8")
-        else:
-            return b"" # 如果是二进制文件，则不返回类型
+            if coding=="ascii": # 如果未检测到多字节的编码，则尝试继续检测
+                data=f.read(3072)
+                if data:
+                    detected=chardet.detect(data)
+                    coding=detected["encoding"]
+        if coding is not None and detected["confidence"]>0.9:
+            mime_type+=";charset=%s"%coding
+    return b"Content-Type: %s\n"%mime_type.encode()
 
-def parse_dir(req_head): # 解析请求头中的路径
-    dir = unquote(req_head.split(' ')[1])[1:] # 获取请求url后面的路径, 在请求数据第一行
-    if dir == "":
+def parse_head(req_head): # 解析请求头中的路径和查询参数
+    path = unquote(req_head.split(' ')[1])[1:] # 获取请求url后面的路径, 在请求数据第一行
+    split = path.rsplit("#",1)
+    path = split[0]
+    fragment = split[1] if len(split)==2 else None
+    split = path.split("?",1)
+    dir = split[0]
+    query = parse_qs(split[1],keep_blank_values=True) if len(split)==2 else {}
+    if dir == "": # 路径为空，则用当前路径
         dir="."
     dir=dir.replace("\\","/")
     if dir[-1]=="/": # 去除末尾多余的斜杠
         dir=dir[:-1]
-    return dir
+    return dir,query,fragment
 
-def get_dir_content(dir,path):
+def get_dir_content(dir):
+    path = os.path.join(os.getcwd(),dir)
     head = HEAD_OK
-    response = head + (f"""
+    response = head + f"""
 <html><head>
 <meta http-equiv="content-type" content="text/html;charset=utf-8">
 <title>{path} 的目录</title>
 </head><body>
-<h1>{path}的目录</h1><p></p>""").encode()
+<h1>{path}的目录</h1><p></p>""".encode()
     # 获取当前路径下的各个文件、目录名
     subdirs=[] # 子目录名
     subfiles=[] # 子文件名
@@ -74,13 +94,19 @@ def get_dir_content(dir,path):
         response += f'\n<a href="/{dir}/..">[上级目录]</a><p></p>'.encode()
     # 依次显示各个子文件、目录
     for sub in subdirs:
-        response += (f'\n<a href="/{dir}/{sub}">[目录]{sub}</a><p></p>').encode()
+        response += f'\n<a href="/{dir}/{sub}">[目录]{sub}</a><p></p>'.encode()
     for sub in subfiles:
         size=convert_bytes(os.path.getsize(os.path.join(path,sub)))
-        response += (f'''\n<a href="/{dir}/{sub}">{sub}</a>\
-<span style="color: #707070;">&nbsp;{size}</span><p></p>''').encode()
+        response += f'''\n<a href="/{dir}/{sub}">{sub}</a>\
+<span style="color: #707070;">&nbsp;{size}</span><p></p>'''.encode()
     response += b"\n</body></html>"
     return response
+
+def get_file(path): # 返回文件的数据
+    head = HEAD_OK + check_filetype(path) # 加入content-type
+    # 响应头末尾以两个换行符(\n\n)结尾
+    head += b"Content-Length: %d\n\n" % os.path.getsize(path) # 加入文件长度
+    return _read_file_helper(head,open(path,'rb'),CHUNK_SIZE) # 分段读取文件
 
 def getcontent(dir): # 根据url的路径dir构造响应数据
     # 将dir转换为系统路径, 放入path
@@ -96,31 +122,26 @@ def getcontent(dir): # 根据url的路径dir构造响应数据
                     file = f
                     if f.split(".")[1].lower() in ("htm","html"): # 当有多个index文件时html文件优先
                         break
-            if file != None:
+            if file is not None:
                 path = os.path.join(path,file)
 
         # 构造响应数据
         if os.path.isfile(path): # --path是文件, 就打开文件并读取--
-            head = HEAD_OK + check_filetype(path) # 加入content-type
-            with open(path,'rb') as f:
-                data = f.read()
-                # 响应头末尾以两个换行符(\n\n)结尾
-                head += b"Content-Length: %d\n\n" % len(data) # 加入内容长度
-                response = head + data
+            response = get_file(path)
+
         elif os.path.isdir(path): # --path是路径, 就显示路径中的各个文件--
-            response=get_dir_content(dir,path)
+            response = get_dir_content(dir)
+
         else: # 不存在文件或目录
             # 若.html的后缀名省略，自动寻找html文件
             # 不过，例如要访问path，path/index.html要优先于path.html，用户可自行修改
             for ext in (".htm",".html"):
                 file = path + ext
                 if os.path.isfile(file):
-                    with open(file,'rb') as f:
-                        data = f.read()
-                        head += b"Content-Length: %d\n\n" % len(data) # 加入内容长度
-                        response = head + data
-                    return response
-            raise OSError # 当作错误处理, 进入getcontent的except语句
+                    response = get_file(file)
+                    break
+            else:
+                raise OSError # 当作错误处理, 进入except语句
 
     except OSError:
         # 返回404
@@ -136,6 +157,32 @@ def getcontent(dir): # 根据url的路径dir构造响应数据
 </body></html>
 """.encode()
     return response
+
+def send_response(sock,response,address):
+    # 分段发送响应
+    if isinstance(response,bytes):
+        response = _slice_helper(response,CHUNK_SIZE)
+    total=0
+    chunk=next(response)
+    sock.send(chunk)
+    begin=time.perf_counter()
+    while True:
+        size=len(chunk)
+        total+=size
+        try:
+            chunk=next(response)
+        except StopIteration:
+            break
+        else:
+            if SEND_SPEED > 0:
+                seconds = (total/(1<<20))/SEND_SPEED - \
+                          (time.perf_counter() - begin) # 预计时间 - 实际时间
+                if seconds > 0:
+                    time.sleep(seconds) # 延迟发送，限制速度
+        sock.send(chunk)
+    if SEND_SPEED > 0 and total >= SEND_SPEED*(1<<20) \
+        or SEND_SPEED <= 0 and total >= 1<<27: # 如果预计发送时间超过1秒，或不限速时大于128MB
+        print(address,"较大响应 (%s) 发送完毕" % convert_bytes(total))
 
 def handle_post(sock,req_head,req_info,content):
     length = int(req_info.get('Content-Length',-1))
@@ -154,8 +201,8 @@ def handle_post(sock,req_head,req_info,content):
         if len(content)<=42: # 空的表单
             content = b''
         else:
-            t=content.splitlines()[1:-1]
-            content = b"\n".join(content.splitlines()[1:-1]) # 去除第一行和末尾的WebKitFormBoundary标识
+            split=content.splitlines()[1:-1]
+            content = b"\n".join(split) # 去除第一行和末尾的WebKitFormBoundary标识
         print(address,"提交文件数据:",content)
     else:
         if len(content)<length: # post含有多个tcp数据包时
@@ -165,8 +212,8 @@ def handle_post(sock,req_head,req_info,content):
                           keep_blank_values=True,encoding="utf-8")
             print(address,"提交数据:",form)
 
-    dir=parse_dir(req_head)
-    return HEAD_OK + f"""
+    #dir=parse_head(req_head)[0]
+    return HEAD_OK + """
 <html><head>
 <meta http-equiv="content-type" content="text/html;charset=utf-8">
 <title>提交成功</title>
@@ -195,25 +242,21 @@ def handle_client(sock, address):# 处理客户端请求
     raw = sock.recv(RECV_LENGTH)
     data = raw.decode("utf-8")
     if data=="":return # 忽略空数据
-    
+
     req_head,req_info=get_request_info(data)
     #print("请求数据:", req_head);pprint.pprint(req_info)
 
+     # 获取响应数据，response可以为bytes类型，或一个生成器
     if req_head.startswith("POST"): # POST请求
         response=handle_post(sock,req_head,req_info,raw.splitlines()[-1])
     else: # GET请求
-        dir=parse_dir(req_head)
-        print(address,"访问路径:",dir)
-        response=getcontent(dir) # 获取响应数据
+        print(address,"访问URL:",unquote(req_head.split(' ')[1]))
+        dir=parse_head(req_head)[0]
+        response=getcontent(dir) # 获取目录的数据
 
-    # 向客户端分段发送响应数据
-    n=len(response)
-    for i in range(0,n,RESPONSE_LENGTH):
-        sock.send(response[i:i+RESPONSE_LENGTH])
-        if SEND_SPEED>0 and i+RESPONSE_LENGTH<n:
-            time.sleep(RESPONSE_LENGTH/(1<<20)/SEND_SPEED) # 延迟发送，限制速度
-    if len(response)>=SEND_SPEED*(1<<20): # 如果发送超过1秒
-        print(address,"较大请求 (%dB) 发送完毕"%n)
+    try:send_response(sock,response,address) # 向客户端分段发送响应数据
+    except ConnectionError as err:
+        print(address,"连接异常 (%s): %s" % (type(err).__name__,str(err)))
     sock.close() # 关闭客户端连接
 
 def handle_client_thread(*args,**kw): # 仅用于多线程中产生异常时输出错误信息
@@ -221,8 +264,12 @@ def handle_client_thread(*args,**kw): # 仅用于多线程中产生异常时输�
     except Exception:
         traceback.print_exc()
 
-PORT=int(sys.argv[1]) if len(sys.argv)==2 else 80 # 80为HTTP的默认端口，选择80后在URL中可不加端口号。(也可改成其他端口)
+PORT=int(sys.argv[1]) if len(sys.argv)==2 else 80 # 80为HTTP的默认端口
 if __name__ == "__main__":
+    host = socket.gethostname()
+    ips = socket.gethostbyname_ex(host)[2] # 或者socket.gethostbyname(host)
+    print("服务器的IP:",ips)
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(("", PORT))
     sock.listen(128) # 监听，参数为最大等待连接数
@@ -237,6 +284,5 @@ if __name__ == "__main__":
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
         while True:
             client_sock, address = sock.accept()
-            #executor.submit(handle_client, client_sock, address)
             executor.submit(handle_client_thread, client_sock, address)
     sock.close()
