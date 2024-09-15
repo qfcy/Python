@@ -1,4 +1,4 @@
-import sys,marshal,traceback
+import sys,marshal,traceback,warnings
 try:
     from importlib._bootstrap_external import MAGIC_NUMBER
 except ImportError:
@@ -9,7 +9,7 @@ def dump_to_pyc(pycfilename,data,pycheader=None):
         # 写入 pyc 文件头
         if pycheader is None:
             # 自动生成 pyc 文件头
-            if sys.winver >= '3.7':
+            if sys.version_info.minor >= 7:
                 pycheader=MAGIC_NUMBER+b'\x00'*12
             else:
                 pycheader=MAGIC_NUMBER+b'\x00'*8
@@ -33,7 +33,10 @@ for file in sys.argv[1:]:
             if modname in ('bz2','lzma','zlib'):
                 mod=__import__(modname)
                 data=mod.decompress(c.co_consts[2]) # 解压数据
-                marshal.loads(data) # 测试解压后数据完整性
+                try:marshal.loads(data) # 测试解压后数据完整性
+                except Exception as err:
+                    warnings.warn("Bad decompressed data: %s (%s)" % (
+                        type(err).__name__,str(err)))
                 dump_to_pyc(file,data,old_header)
                 print('Processed:',file)
             else:

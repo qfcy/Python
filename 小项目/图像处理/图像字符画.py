@@ -1,4 +1,4 @@
-# 由其他作品改编
+# 由其他项目改编
 import sys,os,timer_tool
 from tkinter import *
 from PIL import Image

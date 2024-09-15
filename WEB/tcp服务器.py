@@ -1,37 +1,35 @@
-# 本文件来自其他人的项目
+# 本文件改编自其他项目
 import socket
 
+CODING="utf-8"
 # 创建套接字
-tcpServerSocket = socket.socket()
+sock = socket.socket()
 
 # 设置IP和端口号
-ip = socket.gethostbyname(socket.gethostname())
-tcpServerAddress = (ip,7788)
+ip = "127.0.0.1" #socket.gethostbyname(socket.gethostname())
+server_addr = (ip,8000)
 
 # 绑定IP和端口号
-tcpServerSocket.bind(tcpServerAddress)
+sock.bind(server_addr)
 
 # 打开监听
-tcpServerSocket.listen(6)
-print('打开监听，等待客户端连接。')
+sock.listen(128)
+print('在%s打开监听，等待客户端连接。'%str(server_addr))
 
 # 等待客户端连接
-tcpClientSocket, tcpClientAddress = tcpServerSocket.accept()
-print('客户端已连接：',tcpClientAddress)
+client_sock, address = sock.accept()
+print('客户端已连接：',address)
 
-while 1:
+while True:
     # 接收数据
-    tcpServerReceiveData = tcpClientSocket.recv(1024)  
-    print('接收客户端数据：',tcpServerReceiveData.decode("gbk"))
-
-    if tcpServerReceiveData.decode("gbk") == '断开连接':
-        break
+    recv = client_sock.recv(1024)
+    print('接收客户端数据：',recv.decode(CODING))
 
     # 发送数据
-    tcpServerSendData = input('发送客户端数据：')
-    tcpClientSocket.send(tcpServerSendData.encode("gbk")) 
+    data = input('发送客户端数据：')
+    client_sock.send(data.encode(CODING))
 
 # 关闭套接字
-tcpClientSocket.close()
-tcpServerSocket.close()
+client_sock.close()
+sock.close()
 print('关闭服务器。')

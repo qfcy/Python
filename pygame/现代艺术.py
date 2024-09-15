@@ -1,4 +1,4 @@
-﻿# 来自其他人书中的项目
+﻿# 来自其他项目
 import pygame,random,sys
 from pygame.colordict import THECOLORS
 

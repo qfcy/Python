@@ -5,11 +5,13 @@ from random import random
 
 __all__=["generate_sine","generate_triangular","generate_square",
          "generate_white_noise","mixer","wave_mixer","Beep",
-         "get_raw_data","get_wav_data","view_wave"]
+         "to_raw_data","to_wav_data","view_wave"]
 
 SINE_WAVE=0
 TRIANGULAR_WAVE=1
 SQUARE_WAVE=2
+
+# 程序中，生成器生成的值为整数，8位时范围为0~255,16位时为0~65535
 
 # 生成正弦波
 def generate_sine(freq,seconds,volume,samprate,sampwidth,phase=0):
@@ -54,21 +56,6 @@ def generate_white_noise(volume,seconds,samprate,sampwidth):
     for _ in range(count):
         yield int(random() * 2 * A + (mid - A))
 
-def generate_pink_noise(volume,seconds,samprate,sampwidth): # 生成粉红噪声
-    # 线性反馈移位寄存器（LFSR）方法，即利用多个频率的白噪声叠加，
-    # 并维护一系列的平均值，进行简单的平滑处理
-    white = generate_white_noise(volume,seconds,samprate,sampwidth)
-
-    pre1=next(white)
-    pre2=next(white)
-    yield pre1
-    yield int((pre1+pre2)/2) # 对第一个和第二个样本做简单平均
-    for value in white:
-        # 对更高的样本进行加权
-        yield int((pre1 + pre2 + value) / 3)
-        pre1=pre2
-        pre2=value
-
 # 对上一层的声音进行积分
 def integral(generator,volume,sampwidth):
     maxval = (1<<(sampwidth*8)) - 1; minval=0 # 最大和最小范围
@@ -84,7 +71,56 @@ def integral(generator,volume,sampwidth):
             value-=dt
         yield int(value)
 
-def concat(*generators): # 按顺序拼接多段声音
+def get_wav_info(filename):
+    # 获取wav文件的信息
+    with wave.open(filename,'rb') as f:
+        sampwidth = f.getsampwidth()
+        samprate=f.getframerate()
+        seconds=f.getnframes()/samprate
+    return samprate,sampwidth,seconds
+
+def read_wav(filename):
+    # 读取音频(目前仅支持单声道)
+    with wave.open(filename,'rb') as f:
+        sampwidth = f.getsampwidth()
+        nframes=f.getnframes()
+        from_bytes=int.from_bytes
+        signed=True if sampwidth==2 else False
+        offset=32768 if sampwidth==2 else 0
+        for i in range(nframes):
+            data=f.readframes(1)
+            value=from_bytes(data,"little",signed=signed) + offset
+            yield value
+
+def convert(generator,from_samprate,from_sampwidth,to_samprate,to_sampwidth):
+    # 转换一段波形的采样率和量化位数
+    factor=2**((to_sampwidth-from_sampwidth)*8)
+    step=from_samprate/to_samprate
+    pre=-1;cur=0 # 哨兵
+    pre_value=-1;value=next(generator)
+    while True:
+        if int(cur)>int(pre):
+            # 取生成器后面的值
+            try:
+                for i in range(int(cur)-int(pre)):
+                    pre_value=value
+                    value=next(generator)
+            except StopIteration:
+                if i==int(cur)-int(pre)-1 and (cur % 1) / step < 1e-5: # 判断是否需返回最后一项，同时避免浮点误差
+                    yield value # 返回最后一项
+                break
+        weight = cur % 1
+        output = int((pre_value * (1-weight) + value * weight) * factor)
+        yield output
+        pre=cur
+        cur+=step
+
+def adjust_volume(generator,sampwidth,volume): # 调整音频的音量，也就是振幅
+    mid = 1<<(sampwidth*8-1) # 中间值
+    for value in generator:
+        yield int((value - mid) * volume + mid)
+
+def concat(*generators): # 按顺序拼接多段声音，采样频率和位数需要相同
     for gen in generators:
         for value in gen:
             yield value
@@ -118,29 +154,32 @@ def wave_mixer(sounds,seconds,volume,samprate,sampwidth):
             freq,seconds,1,samprate,sampwidth),vol*volume))
     return mixer(generators)
 
-def fourier_transform(generator,freq,samprate): # 傅里叶变换
+def fourier_transform(generator,freq,samprate,sampwidth): # 傅里叶变换
+    mid = 1<<(sampwidth*8-1) # 中间值
+    rate = 1<<(sampwidth*8)
     total=0; t=0; pi=math.pi; e=math.e
     for value in generator:
-        total += value * e ** (-2j * pi * t * freq)
+        value = (value - mid) / rate
+        total += value * e ** (-2j * pi * t * freq) # 积分
         t += 1/samprate
-    magnitude = math.hypot(total.real, total.imag)
+    magnitude = math.hypot(total.real, total.imag)/samprate
     phase = math.atan2(total.imag, total.real)
     return magnitude, phase
 
 
-def get_raw_data(generator,sampwidth,size):
+def to_raw_data(generator,sampwidth,size):
     # 根据量化位宽，将生成器的输出转换为原始音频数据
     if sampwidth==1:
-        return bytes(generator)
+        return bytes(generator) # 8位时，wav音频帧的范围为0~255
     else:
         arr=bytearray(size);offset=0 # 使用bytearray提升性能
         pack_into=struct.pack_into
         for value in generator:
-            pack_into('<h',arr,offset,value-32768)
+            pack_into('<h',arr,offset,value-32768) # 16位时，音频帧范围为-32768~32767
             offset += sampwidth
         return bytes(arr)
 
-def get_wav_data(raw_data,samprate,sampwidth,channels=1):
+def to_wav_data(raw_data,samprate,sampwidth,channels=1):
     # 根据原始数据，构造wav文件的数据，包括wav的文件头
     f=BytesIO() # 创建文件对象
     fw = wave.open(f,'wb')
@@ -158,6 +197,7 @@ def view_wave(generator,seconds): # 显示波形
     except ImportError:
         raise NotImplementedError("Missing optional libraries: numpy and matplotlib")
     plt.rcParams['font.sans-serif'] = ['SimHei'] # 用于正常显示中文
+    plt.rcParams["axes.unicode_minus"]=False
 
     data=list(generator)
     lsp=np.linspace(0,seconds,len(data),endpoint=False)
@@ -169,24 +209,27 @@ def view_wave(generator,seconds): # 显示波形
     fig.canvas.set_window_title("生成的声波")
     plt.show()
 
-def view_freq_spectrum(generator,samprate,min=100,max=10000,count=100): # 显示频谱
+def view_freq_spectrum(generator,samprate,sampwidth,min=10,max=10000,count=100): # 显示频谱
     try:
         import numpy as np
         import matplotlib.pyplot as plt
     except ImportError:
         raise NotImplementedError("Missing optional libraries: numpy and matplotlib")
     plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams["axes.unicode_minus"]=False
 
-    lsp=np.linspace(min, max, count)
+    lsp=np.linspace(math.log10(min), math.log10(max), count)
+    lsp=10 ** lsp
     data=list(generator)
     transformed=[]
     for freq in lsp:
-        transformed.append(fourier_transform(data,freq,samprate))
+        transformed.append(fourier_transform(data,freq,samprate,sampwidth))
     mag_db=[math.log10(x[0])*20 for x in transformed]
     phase=[x[1] for x in transformed]
     fig, ax1 = plt.subplots()
 
     ax1.plot(lsp,mag_db,label="幅度(dB)",color="blue")
+    ax1.set_xscale('log')
     ax1.set_xlabel("频率(Hz)")
     ax1.set_ylabel("幅度(dB)")
 
@@ -202,6 +245,7 @@ def view_freq_spectrum(generator,samprate,min=100,max=10000,count=100): # 显示
 
 _beep_cache={}
 def Beep(frequency,duration,type=SINE_WAVE,use_cache=True):
+    # 发出一段声音，替代winsound.Beep函数，其中duration为毫秒数
     if use_cache and (frequency,duration,type) in _beep_cache:
         wav_data = _beep_cache[(frequency,duration,type)]
     else:
@@ -221,14 +265,24 @@ def Beep(frequency,duration,type=SINE_WAVE,use_cache=True):
             gen = generate_square(frequency,seconds,volume,samprate,sampwidth)
         else:
             raise ValueError("Invalid wave type %d"%type)
-        data = get_raw_data(gen,sampwidth,size) # 生成声波的字节数据
-        wav_data = get_wav_data(data,samprate,sampwidth) # 构造wav文件
+        data = to_raw_data(gen,sampwidth,size) # 生成声波的字节数据
+        wav_data = to_wav_data(data,samprate,sampwidth) # 构造wav文件
         #with open("test.wav","wb") as f:
         #    f.write(wav_data)
         if use_cache:_beep_cache[(frequency,duration,type)] = wav_data
 
     PlaySound(wav_data,SND_MEMORY) # 播放声音
 
+def test_convert(filename="test.wav"):
+    samprate = 11025;sampwidth = 1
+    rate,width,seconds=get_wav_info(filename)
+    size = int(samprate * seconds * sampwidth)
+    wav=read_wav(filename)
+    converted=convert(wav,rate,width,samprate,sampwidth)
+    sound=adjust_volume(converted,sampwidth,0.3)
+    data=to_raw_data(sound,sampwidth,size)
+    wav_data=to_wav_data(data,samprate,sampwidth)
+    PlaySound(wav_data,SND_MEMORY)
 
 def test_white_noise():
     samprate = 44100;sampwidth = 2
@@ -237,19 +291,8 @@ def test_white_noise():
     volume = 1 * 10**(volume_db/20)
     size = int(samprate * seconds * sampwidth)
     gen=generate_white_noise(volume,seconds,samprate,sampwidth)
-    data=get_raw_data(gen,sampwidth,size)
-    wav_data=get_wav_data(data,samprate,sampwidth)
-    PlaySound(wav_data,SND_MEMORY)
-def test_pink_noise(): # 生成粉红噪声
-    samprate = 44100;sampwidth = 2
-    seconds = 1.8
-    volume_db = -40
-    volume = 1 * 10**(volume_db/20)
-    size = int(samprate * seconds * sampwidth)
-    gen=generate_pink_noise(volume,seconds,samprate,sampwidth)
-    #view_freq_spectrum(gen,samprate) # 一个生成器只能输出一次
-    data=get_raw_data(gen,sampwidth,size)
-    wav_data=get_wav_data(data,samprate,sampwidth)
+    data=to_raw_data(gen,sampwidth,size)
+    wav_data=to_wav_data(data,samprate,sampwidth)
     PlaySound(wav_data,SND_MEMORY)
 def test_red_noise(): # 生成红噪声，类似于风的声音
     samprate = 44100;sampwidth = 2
@@ -259,10 +302,11 @@ def test_red_noise(): # 生成红噪声，类似于风的声音
     size = int(samprate * seconds * sampwidth)
     white=generate_white_noise(volume,seconds,samprate,sampwidth)
     gen=integral(white,volume,sampwidth)
-    #view_freq_spectrum(gen,samprate)
-    data=get_raw_data(gen,sampwidth,size)
-    wav_data=get_wav_data(data,samprate,sampwidth)
+    #view_freq_spectrum(gen,samprate,sampwidth);return # 一个生成器只能输出一次
+    data=to_raw_data(gen,sampwidth,size)
+    wav_data=to_wav_data(data,samprate,sampwidth)
     PlaySound(wav_data,SND_MEMORY)
+
 def _instrument_sound(freq,decline=5):
     return [(SINE_WAVE,freq,0),
             (SINE_WAVE,freq*2,-decline),
@@ -276,16 +320,16 @@ def test_mixed_sound(sounds):
     seconds = 1.8;volume=0.2
     size = int(samprate * seconds * sampwidth)
     gen=wave_mixer(sounds,seconds,volume,samprate,sampwidth)
-    data=get_raw_data(gen,sampwidth,size)
-    wav_data=get_wav_data(data,samprate,sampwidth)
+    data=to_raw_data(gen,sampwidth,size)
+    wav_data=to_wav_data(data,samprate,sampwidth)
     PlaySound(wav_data,SND_MEMORY)
 
 def test():
+    test_convert()
     Beep(220.5,1800,type=SINE_WAVE)
     Beep(220.5,1800,type=TRIANGULAR_WAVE)
     Beep(220.5,1800,type=SQUARE_WAVE)
     test_white_noise()
-    test_pink_noise()
     test_red_noise()
     test_mixed_sound(_instrument_sound(220))
     test_mixed_sound(_sound2)

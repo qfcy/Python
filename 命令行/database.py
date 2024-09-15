@@ -1,8 +1,6 @@
-'A simple database module that made by module shelve.'
+'A simple database module that made by module shelve.' # 由其他项目改编
 import sys, shelve
 
-__author__='qfcy'
-__email__='3076711200@qq.com'
 __version__='1.0.1'
 _TITLE="database"
 

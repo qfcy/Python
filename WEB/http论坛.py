@@ -66,8 +66,8 @@ def handle_client(sock, address):# 处理客户端请求
             form=parse_qs(content.decode("utf-8"),encoding="utf-8")
             if "text" in form: # 如果用户输入了内容
                 text = form["text"][0]
-                print("新帖:",text)
-                data.append(text)
+                print(address,"新帖:",text)
+                data.append({"user":address[0],"content":text})
                 save_data()
             response=head_ok + b'''
 <html><head>
@@ -80,18 +80,18 @@ def handle_client(sock, address):# 处理客户端请求
 <meta http-equiv="content-type" content="text/html;charset=utf-8">
 <title>简易论坛系统</title>
 </head>
-
 <body>
-""".encode()
-        for text in data:
-            text_html=text.replace("\n","<br>")
-            response+=b"<p>%s</p>\n" % text_html.encode()
-        response+="""
 <form id="form1" name="form1" method="post" action="">
   <p><textarea name="text" id="text" cols="45" rows="5"></textarea>
   </p>
   <input type="submit" name="button" id="button" value="发表" />
 </form>
+""".encode()
+        for post in data:
+            text='<span style="color: #707070;">%s</span>: %s' % (post["user"],post["content"])
+            text_html=text.replace("\n","<br>")
+            response+=b"<p>%s</p>\n" % text_html.encode()
+        response+="""
 </body>
 </html>
 """.encode()
@@ -123,6 +123,5 @@ if __name__ == "__main__":
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
         while True:
             sock, address = server_socket.accept()
-            #executor.submit(handle_client, client_socket)
             executor.submit(_handle_client, sock, address)
     client_socket.close()

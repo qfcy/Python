@@ -69,8 +69,10 @@ def main():
                     ans=input('是否复制 %s 到 %s ? [Y/N/A(All)/I(Ignore all)]'\
                               % (dst_file,file))
                     if ans.lower().startswith('y'):
+                        print('已复制:',dst_file,file)
                         copy2(dst_file,file)
                     elif ans.lower() in ('a','all'):
+                        print('已复制:',dst_file,file)
                         all_=True;copy2(dst_file,file)
                     elif ans.lower() in ('i','ignore all'): # 忽略全部
                         ignore_all=True
@@ -99,6 +101,7 @@ def main():
                     print('已删除 '+file)
                     os.remove(file)
                 elif ans.lower() in ('a','all'):
+                    print('已删除 '+file)
                     all_=True;os.remove(file)
                 elif ans.lower() in ('i','ignore all'): # 忽略全部
                     ignore_all=True
@@ -121,5 +124,5 @@ if __name__=="__main__":
     try:main()
     except Exception:
         traceback.print_exc() # 显示错误消息
-    if not 'pythonw' in os.path.split(sys.executable)[1]: #在pythonw.exe(如IDLE)中运行时不暂停
+    if not 'pythonw' in os.path.split(sys.executable)[1].lower(): #在pythonw.exe(如IDLE)中运行时不暂停
         os.system('pause')

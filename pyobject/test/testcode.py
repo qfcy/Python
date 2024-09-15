@@ -69,7 +69,7 @@ S\x00'''
 
 def dump_to_pyc(pycfilename,code):
     # 生成 pyc 文件头
-    if sys.winver >= '3.7':len=12
+    if sys.version_info.minor >= 7:len=12
     else:len=8
     default=MAGIC_NUMBER+b'\x00'*len
     if os.path.isfile(pycfilename):
@@ -129,6 +129,6 @@ def spread_to_mod(modname,use_pycache=True):
     return co
     #if co and not file.endswith('.pyc'):os.remove(file)
 
-target='test.pyc'
+target='empty.pyc' # 需要用Python 3.7
 co=spread(target)
 # print('hello world') # 用于测试

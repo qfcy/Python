@@ -99,11 +99,14 @@ class ObjectBrowser():
 
         self.functions_tag=self.tvw.insert('',index=0,text="函数、方法")
         self.attributes_tag=self.tvw.insert('',index=1,text="属性")
-        self.tvw.item(self.attributes_tag,open=True) # 展开项
         self.classes_tag=self.tvw.insert('',index=2,text="类")
-        self.tvw.item(self.classes_tag,open=True)
         self.lst_tag=self.tvw.insert('',index=3,text="列表数据")
         self.dict_tag=self.tvw.insert('',index=4,text="字典数据")
+        self.tvw.item(self.attributes_tag,open=True) # 展开项
+        self.tvw.item(self.classes_tag,open=True)
+        self.tvw.item(self.lst_tag,open=True)
+        self.tvw.item(self.dict_tag,open=True)
+
         editor = ttk.Labelframe(self.master, text='编辑值',
                                 width=100, height=100)
         self.okbtn=ttk.Button(editor,text="确定",
