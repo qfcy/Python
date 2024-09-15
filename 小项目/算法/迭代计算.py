@@ -1,7 +1,7 @@
 import timer_tool,math
 s=float(input("输入s(x**x=s): "))
 t=timer_tool.Timer() # 开始计时
-# 法一（实测证明s>=e**e (x>=e(≈2.71828))时计算会较慢）
+# 法一（实测证明s>=e**e (x>=e(≈2.71828))时收敛会较慢）
 x=1;cnt=0
 while True:
     x=s ** (1/x) # 相当于 x=x√(s)

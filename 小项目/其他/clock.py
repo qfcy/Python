@@ -16,8 +16,8 @@ def main():
                             str(t[5]).zfill(2)
         print("{}:{}:{}".format(hour,minute,second))
         #当前时间为整点时报时
-        if second==0:
-            bell(hour%12)
+        if minute=="00" and second=="00":
+            bell(t[3]%12)
         time.sleep(DELAY)
 
 if __name__=="__main__":main()

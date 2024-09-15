@@ -26,6 +26,10 @@ def run_uncompile(filename):
         uncompiler.main_bin() # 运行uncompile
     except KeyboardInterrupt:
         end_capture();print("用户中断了反编译",file=sys.stderr)
+        sys.stdout.close();return
+    except SystemExit as err:
+        end_capture()
+        print("退出状态码:",err.code,file=sys.stderr)
     except BaseException:
         end_capture()
         print("文件%s反编译失败，错误消息详见%s"% (filename,tofilename)
@@ -33,18 +37,18 @@ def run_uncompile(filename):
         traceback.print_exc(file=sys.stdout)
         print("按Enter键继续...",end='',file=sys.stderr)
         input()
+        sys.stdout.close();return
     else:
         end_capture()
-        if not message:
-            print("文件%s反编译成功"%filename,file=sys.stderr)
-        else:
-            print("文件%s反编译可能失败，警告/错误消息详见%s" % (
-                  filename,tofilename), file=sys.stderr)
-            sys.stdout.write(message)
-            print("按Enter键继续...",end='',file=sys.stderr)
-            input()
-    finally:
-        sys.stdout.close()
+    if not message:
+        print("文件%s反编译成功"%filename,file=sys.stderr)
+    else:
+        print("文件%s反编译可能失败，警告/错误消息详见%s" % (
+              filename,tofilename), file=sys.stderr)
+        sys.stdout.write(message)
+    print("按Enter键继续...",end='',file=sys.stderr)
+    input()
+    sys.stdout.close()
 
 if __name__=="__main__":
     try:

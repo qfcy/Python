@@ -1,4 +1,4 @@
-# 来自其他人的项目
+# 来自其他项目
 def compress(message):
     tree_dict, m_len, i = {}, len(message), 0
     while i < m_len:

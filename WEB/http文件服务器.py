@@ -10,19 +10,22 @@ import chardet,mimetypes
 
 HEAD_100 = b"HTTP/1.1 100 Continue\n"
 HEAD_OK = b"HTTP/1.1 200 OK\n"
+HEAD_206 = b"HTTP/1.1 206 Partial Content\n"
 HEAD_404 = b"HTTP/1.1 404 Not Found\n"
 RECV_LENGTH = 16384 # sock.recv()一次接收内容的长度
 CHUNK_SIZE = 1<<19 # 0.5MB
 SEND_SPEED = 10 # 大文件的发送速度限制，单位为MB/s，设为非正数则不限速
 
-def _read_file_helper(head,file,size): # 分段读取文件使用的生成器
+def _read_file_helper(head,file,chunk_size,start,end): # 分段读取文件使用的生成器
     yield head
-    while True:
+    file.seek(start)
+    total=0
+    while total<end-start:
+        size=min(chunk_size,end-start-total)
         data=file.read(size)
-        if not data:
-            file.close()
-            return
+        total+=size
         yield data
+    file.close()
 def _slice_helper(data,size):
     n=len(data)
     for i in range(0,n,size):
@@ -102,13 +105,21 @@ def get_dir_content(dir):
     response += b"\n</body></html>"
     return response
 
-def get_file(path): # 返回文件的数据
-    head = HEAD_OK + check_filetype(path) # 加入content-type
-    # 响应头末尾以两个换行符(\n\n)结尾
-    head += b"Content-Length: %d\n\n" % os.path.getsize(path) # 加入文件长度
-    return _read_file_helper(head,open(path,'rb'),CHUNK_SIZE) # 分段读取文件
+def get_file(path,start=None,end=None): # 返回文件的数据
+    size = os.path.getsize(path)
+    if start is not None or end is not None:
+        start = start or 0
+        end = end or size
+        head = HEAD_206 + check_filetype(path)
+        head += b"Content-Range: bytes %d-%d/%d\n\n" % (start,end,size)
+    else:
+        start = 0; end = size
+        head = HEAD_OK + check_filetype(path) # 加入content-type
+        # 响应头末尾以两个换行符(\n\n)结尾
+        head += b"Content-Length: %d\n\n" % size # 加入文件长度
+    return _read_file_helper(head,open(path,'rb'),CHUNK_SIZE,start,end) # 分段读取文件
 
-def getcontent(dir): # 根据url的路径dir构造响应数据
+def getcontent(dir,start=None,end=None): # 根据url的路径dir构造响应数据
     # 将dir转换为系统路径, 放入path
     path = os.path.join(os.getcwd(),dir)
     try:
@@ -127,7 +138,7 @@ def getcontent(dir): # 根据url的路径dir构造响应数据
 
         # 构造响应数据
         if os.path.isfile(path): # --path是文件, 就打开文件并读取--
-            response = get_file(path)
+            response = get_file(path,start,end)
 
         elif os.path.isdir(path): # --path是路径, 就显示路径中的各个文件--
             response = get_dir_content(dir)
@@ -138,7 +149,7 @@ def getcontent(dir): # 根据url的路径dir构造响应数据
             for ext in (".htm",".html"):
                 file = path + ext
                 if os.path.isfile(file):
-                    response = get_file(file)
+                    response = get_file(file,start,end)
                     break
             else:
                 raise OSError # 当作错误处理, 进入except语句
@@ -238,6 +249,22 @@ def get_request_info(data):
             pass
     return req_head,req_info
 
+def handle_get(req_head,req_info):
+    url=unquote(req_head.split(' ')[1])
+    dir=parse_head(req_head)[0]
+    if "Range" in req_info: # 断点续传
+        range_=req_info["Range"].split("=",1)[1]
+        start,end=range_.split("-")
+        start = int(start) if start else None
+        end = int(end) if end else None
+        print(address,"访问URL: %s (从 %s 到 %s 断点续传)" % (url,
+            convert_bytes(start) if start is not None else None,
+            convert_bytes(end) if end is not None else "末尾"))
+        return getcontent(dir,start,end)
+    else:
+        print(address,"访问URL:",url)
+        return getcontent(dir) # 获取目录的数据
+
 def handle_client(sock, address):# 处理客户端请求
     raw = sock.recv(RECV_LENGTH)
     data = raw.decode("utf-8")
@@ -250,9 +277,7 @@ def handle_client(sock, address):# 处理客户端请求
     if req_head.startswith("POST"): # POST请求
         response=handle_post(sock,req_head,req_info,raw.splitlines()[-1])
     else: # GET请求
-        print(address,"访问URL:",unquote(req_head.split(' ')[1]))
-        dir=parse_head(req_head)[0]
-        response=getcontent(dir) # 获取目录的数据
+        response=handle_get(req_head,req_info)
 
     try:send_response(sock,response,address) # 向客户端分段发送响应数据
     except ConnectionError as err:

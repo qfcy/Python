@@ -13,7 +13,7 @@ def dump_to_pyc(pycfilename,code,pycheader=None):
         # 写入 pyc 文件头
         if pycheader is None:
             # 自动生成 pyc 文件头
-            if sys.winver >= '3.7':
+            if sys.version_info.minor >= 7:
                 pycheader=MAGIC_NUMBER+b'\x00'*12
             else:
                 pycheader=MAGIC_NUMBER+b'\x00'*8
@@ -23,7 +23,8 @@ def dump_to_pyc(pycfilename,code,pycheader=None):
 
 def process_code(co):
     co.co_lnotab = b''
-    co.co_code += b'S\x00' # 增加一个无用的RETURN_VALUE指令，用于干扰反编译器的解析
+    if co.co_code[-4:]!=b'S\x00S\x00':
+        co.co_code += b'S\x00' # 增加一个无用的RETURN_VALUE指令，用于干扰反编译器的解析
     co.co_filename = ''
     #co.co_name = ''
     co_consts = co.co_consts

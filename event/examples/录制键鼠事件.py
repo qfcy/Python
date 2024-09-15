@@ -1,3 +1,4 @@
+# 该项目为beta版本, 录制按键功能待完善
 import time,sys
 import pyWinhook as pyHook
 import pythoncom
@@ -87,7 +88,7 @@ def key_up(event):
 
 def main():
     global last_time,hm
-    sys.stdout=open('event.py','w',encoding='utf-8')
+    sys.stdout=open('录制.py','w',encoding='utf-8')
     # create the hook mananger
     hm = pyHook.HookManager()
 

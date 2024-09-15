@@ -11,9 +11,6 @@ import dis
 import pickle
 import traceback
 from pyobject import desc
-try:
-    from uncompyle6.main import decompile
-except ImportError:decompile=None
 
 _default_code=compile('','','exec')
 _is_py38=hasattr(_default_code, 'co_posonlyargcount') # 是否为3.8及以上版本
@@ -216,8 +213,12 @@ Hello World!
     def dis(self,*args,**kw):
         dis.dis(self._code,*args,**kw)
     def decompile(self,version=None,*args,**kw):
-        if not decompile:
-            raise NotImplementedError("Missing uncompyle6 library")
+        try:
+            from uncompyle6.main import decompile
+        except ImportError as err:
+            raise NotImplementedError(
+                    "Missing uncompyle6 library (%s: %s)" % (
+                    type(err).__name__,str(err)))
         out=io.StringIO()
         if version:
             decompile(self._code,version,out,*args,**kw)

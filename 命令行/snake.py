@@ -1,3 +1,4 @@
+# 来自其他项目
 import curses,random
 #Import module msgbox to show error messages
 try:

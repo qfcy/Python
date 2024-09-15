@@ -4,3 +4,4 @@
 *.git/*
 *.idea/*
 *.vs/*
+*.vscode/*

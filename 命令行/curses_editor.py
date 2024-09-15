@@ -1,4 +1,4 @@
-#使用curse模块制作的文本编辑器
+#使用curse模块制作的文本编辑器，由其他项目改编
 import curses,sys
 from curses.textpad import Textbox, rectangle
 import msgbox

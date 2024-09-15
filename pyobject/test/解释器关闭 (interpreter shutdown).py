@@ -1,4 +1,4 @@
-import sys,gc
+import sys,gc,pyobject
 input=__builtins__.input
 exec=__builtins__.exec
 compile=__builtins__.compile
