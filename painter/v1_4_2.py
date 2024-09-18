@@ -218,8 +218,8 @@ class PropertyWindow(tk.Toplevel):
 class Painter():
     instances=[]
     TITLE="画板 v"+_ver
-    CONFIGFILE=os.getenv("userprofile" if sys.platform=="win32" else "HOME") +\
-               "\.painter\config.cfg"
+    CONFIGFILE=os.path.join(os.getenv("userprofile" if sys.platform=="win32" else "HOME"),
+                            ".painter","config.cfg")
     #CONFIG:包含默认的工具栏位置,背景颜色,画笔颜色,画笔粗细
     CONFIG={"toolbar":"bottom","backcolor":"white",
             "strokecolor":"black","pensize":1}
@@ -264,8 +264,8 @@ class Painter():
             #配置文件不存在时
             try:
                 try:os.mkdir(
-                	os.getenv("userprofile" if sys.platform=="win32" else "HOME")+\
-                             "\.painter")
+                        os.path.join(os.getenv("userprofile" \
+                        if sys.platform=="win32" else "HOME"),".painter"))
                 except FileExistsError:pass
                 open(self.CONFIGFILE,'w').close() # 创建空白文件
             except OSError:
