@@ -286,10 +286,10 @@ class Editor(Tk):
     NORMAL_FONTSIZE=11
     if sys.platform=="win32":
     	TEXT_BG="SystemWindow";TEXT_FG="SystemWindowText" # 系统默认颜色
-    	CONFIGFILE=os.getenv("userprofile") + "\\.pynotepad.pkl"
+    	CONFIGFILE=os.path.join(os.getenv("userprofile"),".pynotepad.pkl")
     else:
     	TEXT_BG="white";TEXT_FG="black" # TODO:获取其他系统的默认颜色
-    	CONFIGFILE=os.getenv("HOME") + "\\.pynotepad.pkl"
+    	CONFIGFILE=os.path.join(os.getenv("HOME"),".pynotepad.pkl")
     FILETYPES=[("所有文件","*.*")]
     AUTOWRAP=CHAR
     SHOW_STATUS=True
