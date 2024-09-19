@@ -94,7 +94,8 @@ class SearchDialog(Toplevel):
     def init_window(self,title="查找"):
         Toplevel.__init__(self,self.master)
         self.title(title)
-        self.attributes("-toolwindow",True)
+        if sys.platform=="win32":
+            self.attributes("-toolwindow",True)
         self.attributes("-topmost",True)
         # 当父窗口隐藏后，窗口也跟随父窗口隐藏
         self.transient(self.master)
