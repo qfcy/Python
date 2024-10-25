@@ -1,4 +1,6 @@
-本仓库用于储存作者长期制作的python源代码, 包含40多个python项目，涉及爬虫、算法、OpenGL、tkinter、面向对象编程等多个领域。 
+本仓库用于储存作者长期制作的python源代码, 包含40多个python项目，涉及爬虫、算法、OpenGL、tkinter、面向对象编程等多个领域。  
+
+**本仓库内部分项目如`pyobject`、`tk_dragtool`、`timer_tool`等已经迁出本仓库，并且不会在本仓库中更新，新的仓库请前往我的个人主页[github.com/qfcy](https://github.com/qfcy)查看。**  
 
 这些是仓库中的一些亮点项目：
 
