@@ -1,16 +1,19 @@
 import sys
 from copy import deepcopy
+from math import inf
 
 NoneType=None.__class__
-class newNoneType():
-    """一种新的None类型。
-与Python自带的NoneType类型相比,这种类型什么都能做,可以相加,相减,相乘,相除,被调用,等等,
-, 即支持许多"魔法"方法; 但这些方法什么都不做。
-示例(部分用法):
->>> none=newNoneType()
+class NewNoneType():
+    """A new None type designed to replace any objects with practical functionality.
+Compared to Python's built-in NoneType, this type can do anything.
+It can be added, subtracted, multiplied, called, etc, \
+supporting many "magic" methods and interfaces.
+However, these methods do nothing and only return a default value.
+Examples (partial usage):
+>>> none=NewNoneType()
 >>> none
 >>> print(none)
-newNoneType
+NewNoneType
 >>> none.write()
 >>> none.write=1
 >>> none.write
@@ -36,7 +39,7 @@ True"""
     def __call__(self,*args,**kwargs):
         return self
     def __eq__(self,other):
-        availbles=self,newNoneType, None,NoneType, 0,''
+        availbles=(self, NewNoneType, None, NoneType, 0, '')
         for availble in availbles:
             if other is availble:return True
         return False
@@ -62,10 +65,9 @@ True"""
         self.__dict__[name]=value
         return self
 
-inf=1e315
 class Infinity():
-    """无穷大。
-示例:
+    """A fake infinity type.
+Examples:
 >>> inf=Infinity()
 >>> inf
 Infinity()
@@ -123,11 +125,8 @@ True
     def __repr__(self):
         return "%sInfinity()"%('-' if self.neg else '')
 
-##class StrangeList(list,tuple):
-##    """一种可变的,奇怪的序列类型,同时继承内置list和tuple类。"""
-
 class ObjDict:
-    "对象字典"
+    "A fake dictionary based on an object's attibutes."
     def __init__(self,obj):
         self.obj=obj
     def __getitem__(self,key):
@@ -179,3 +178,23 @@ ObjDict(1)
         return self.obj
     def __setstate__(self,arg):
         self.obj=arg
+
+class Copier:
+    "Copy other objects' attributes and mimic their behavior."
+    def __init__(self,obj,copy_internal=False,onerror=None):
+        """obj: The object to be copied.
+copy_internal: Whether to copy magic methods.
+onerror: A callback function accepting an exception object \
+that will be called when any errors occur."""
+        self._source_obj=obj
+        for attr in dir(obj):
+            if copy_internal or not (attr.startswith("__") 
+                    and attr.endswith("__")):
+                try:
+                    setattr(self,attr,getattr(obj,attr))
+                except Exception as err:
+                    if onerror is not None:onerror(err)
+
+if __name__=="__main__":
+    import doctest
+    doctest.testmod() # Ignore failure messages indicating "expected nothing but got <BLANKLINE>"

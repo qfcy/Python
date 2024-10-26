@@ -12,13 +12,15 @@ import pickle
 import traceback
 from pyobject import desc
 
+__all__ = ["Code"]
+
 _default_code=compile('','','exec')
 _is_py38=hasattr(_default_code, 'co_posonlyargcount') # 是否为3.8及以上版本
 _is_py310=hasattr(_default_code, 'co_linetable') # 是否为3.10及以上版本
 _is_py311=hasattr(_default_code, 'co_exceptiontable') # 是否为3.11及以上版本
 class Code:
     """
-# 用于doctest
+# Example usage, also for doctest
 >>> def f():print("Hello")
 
 >>> c=Code.fromfunc(f)
@@ -112,6 +114,8 @@ Hello World!
 
     _arg_types={key:type(value) for key,value in _default_args.items()}
     def __init__(self,code=None):
+        """Initialize the code object. \
+The code argument can be either Code or the built-in CodeType."""
         super().__setattr__('_args',self._default_args.copy())
         if code is not None:
             if isinstance(code,Code):
@@ -127,13 +131,18 @@ Hello World!
     def _update_code(self):
         self._code=CodeType(*self._args.values())
     def exec(self,globals_=None,locals_=None):
-
+        "Execute the code using globals_ and locals_ scopes."
         default={"__builtins__":__builtins__,"__doc__":None,
                   "__loader__":__loader__,"__name__":"__main__"}
         globals_ = globals_ or default
         if not locals_:locals_ = default.copy()
         return exec(self._code,globals_,locals_)
     def eval(self,globals_=None,locals_=None):
+        "Evaluate the code using globals_ and locals_ scopes."
+        default={"__builtins__":__builtins__,"__doc__":None,
+                  "__loader__":__loader__,"__name__":"__main__"}
+        globals_ = globals_ or default
+        if not locals_:locals_ = default.copy()
         return eval(self._code,globals_,locals_)
     def __getattr__(self,name):
         _args=object.__getattribute__(self,'_args')
@@ -168,19 +177,24 @@ Hello World!
         self._update_code()
     @classmethod
     def fromfunc(cls,function):
+        "Create a Code instance from a function object."
         c=function.__code__
         return cls(c)
     @classmethod
     def fromstring(cls,string,mode='exec',filename=''):
+        "Create a Code instance from a source code string using compile()."
         return cls(compile(string,filename,mode))
     def to_code(self):
+        "Convert the code object to a built-in CodeType."
         return self._code
     def to_func(self,globals_=None,name=''):
+        "Convert the code object to a function."
         if globals_ is None:
             # 默认的全局命名空间包含内置函数
             globals_={"__builtins__":builtins}
         return FunctionType(self._code,globals_,name)
     def to_pycfile(self,filename):
+        "Dump the code object into a .pyc file using marshal."
         with open(filename,'wb') as f:
             f.write(MAGIC_NUMBER)
             if sys.version_info.minor>=7:
@@ -190,6 +204,7 @@ Hello World!
             marshal.dump(self._code,f)
     @classmethod
     def from_pycfile(cls,filename):
+        "Create a Code instance from a .pyc file using marshal."
         with open(filename,'rb') as f:
             data=f.read()
             header = 16 if data[16]==227 else 12
@@ -197,6 +212,7 @@ Hello World!
             return cls(marshal.loads(data))
     @classmethod
     def from_file(cls,filename):
+        "Create a Code instance from a .pyc or .py file."
         if filename.lower().endswith('.pyc'):
             return Code.from_pycfile(filename)
         else: # .py或pyw文件 (默认utf-8编码)
@@ -204,15 +220,20 @@ Hello World!
                 data=f.read().decode('utf-8')
             return Code(compile(data,filename,'exec'))
     def pickle(self,filename):
+        "Dump the code object into pickle format."
         with open(filename,'wb') as f:
             pickle.dump(self,f)
     def show(self,*args,**kw):
+        "Display the attributes of the code object, including co_code, co_consts, etc."
         desc(self._code,*args,**kw)
     def info(self):
+        "Display the basic information about the bytecode."
         dis.show_code(self._code)
     def dis(self,*args,**kw):
+        "Display the disassembly of the bytecode using dis.dis()."
         dis.dis(self._code,*args,**kw)
     def decompile(self,version=None,*args,**kw):
+        "Decompile the code object to source code using uncompyle6 library."
         try:
             from uncompyle6.main import decompile
         except ImportError as err:

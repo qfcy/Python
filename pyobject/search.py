@@ -1,4 +1,4 @@
-"提供查找、搜索python对象的函数的模块。"
+"提供查找、搜索python对象的函数的模块。Implements the utility for locating the path to a specific object."
 import traceback,builtins,sys
 from warnings import warn
 try:
@@ -56,11 +56,11 @@ def _make_list(start_obj,recursions,lst,called,all=False,show_error=True):
                 _make_list(obj,recursions-1,lst,called,all,show_error)
 
 def make_list(start_obj,recursions=3,all=False,show_error=True):
-    """创建一个包含大量对象的列表。
-start_obj:开始搜索的对象。
-recursions:最大递归层数，最小为1层。
-all:是否将对象的下划线开头属性(如__init__)加入列表。
-show_error:在getattr()内发生异常时，是否将异常输出至sys.stderr。"""
+    """Create a list containing a large number of objects.
+start_obj: The object from which to start the search.
+recursions: The maximum recursion depth, with a minimum of 1 level.
+all: Whether to include attributes that start with an underscore (e.g., __init__) in the list.
+show_error: Whether to output exceptions to sys.stderr when an exception occurs within getattr()."""
     lst=[];called=[]
     _make_list(start_obj,recursions,lst,called,all,show_error)
     return lst
@@ -98,9 +98,9 @@ def _make_iter(start_obj,recursions,called,all=False,show_error=True):
                     yield o
 
 def make_iter(start_obj,recursions=3,all=False,show_error=True):
-    """创建一个对象的迭代器, 功能、参数与make_list相同, 
-make_iter创建的迭代器可能会返回重复的对象, 而make_list不会。
-"""
+    """Create an iterator for an object. The functionality and parameters are the same as make_list.  
+The iterator created by make_iter may return duplicate objects, whereas make_list does not.  
+    """
     called=[]
     for obj in _make_iter(start_obj,recursions,called,all,show_error):
         yield obj
@@ -167,14 +167,14 @@ def _search(target,start_obj,recursions,search_str=False,\
 
 def search(obj,start,recursions=3,search_str=True,\
            verbose=True,cache=True,show_error=True):
-    """从一个起点开始搜索对象。
-obj:待搜索的目标对象。
-start:起点对象，也就是从哪里开始搜索。
-recursions:最大递归层数，最小为1层。
-search_str:是否搜索字符串的子串。
-verbose:是否搜索以下划线开头的属性，如__init__等。
-cache:是否启用缓存 (可加快搜索速度)，值为True,False,或者一个字典。
-show_error:在getattr()内发生异常时，是否将异常输出至sys.stderr。
+    """Search for an object starting from a given point.
+obj: The target object to search for.
+start: The starting object from which to begin the search.
+recursions: The maximum recursion depth, with a minimum of 1 level.
+search_str: Whether to search substrings within strings.
+verbose: Whether to search for attributes that start with an underscore, such as __init__.
+cache: Whether to enable caching (can speed up the search), with values True, False, or a dictionary.
+show_error: Whether to output exceptions to sys.stderr when an exception occurs within getattr().
 """
     name=getattr(start,"__name__","obj") # 也可导入使用objectname函数
     if not isinstance(cache,dict):
@@ -218,26 +218,27 @@ def _calc_module_memory(mod_name):
     module=sys.modules[mod_name]
     lst=[];called=[]
     _iter_module(module,lst,called)
+    mem_used=0
     for obj in lst:
         mem_used+=sys.getsizeof(obj)
     return mem_used
 def test_calc_module_memory():
-    mod_name=input("输入要查询占用内存的模块名称：")
+    mod_name=input("Enter the module name to query：")
     if mod_name.strip():
         exec("import %s"%mod_name)
         mem_used=_calc_module_memory(mod_name)
-        print("模块 %s 内存占用: %s" % (mod_name, _format_size(mem_used)))
+        print("The memory usage of %s: %s" % (mod_name, _format_size(mem_used)))
 def test_calc_total_memory():
     lst=[];called=[]
     for mod_name in sorted(list(sys.modules)):
         if mod_name=="sys":continue
-        print("处理模块 %s" % mod_name, end="",flush=True)
+        print("Processing %s" % mod_name, end="  ",flush=True)
         _iter_module(mod_name,lst,called)
-        print(" 列表长度: %d" % (len(lst)),flush=True)
+        print("List length: %d" % (len(lst)),flush=True)
     total_mem=0
     for obj in lst:
         total_mem+=sys.getsizeof(obj)
-    print("模块占用总内存: %s" % _format_size(total_mem))
+    print("Total memory usage of loaded modules: %s" % _format_size(total_mem))
 
 if __name__=="__main__":
     test_make_list()

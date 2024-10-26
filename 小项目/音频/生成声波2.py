@@ -115,7 +115,7 @@ def convert(generator,from_samprate,from_sampwidth,to_samprate,to_sampwidth):
         pre=cur
         cur+=step
 
-def adjust_volume(generator,sampwidth,volume): # 调整音频的音量，也就是振幅
+def adjust_volume(generator,sampwidth,volume): # 调整音频的音量 (振幅)
     mid = 1<<(sampwidth*8-1) # 中间值
     for value in generator:
         yield int((value - mid) * volume + mid)

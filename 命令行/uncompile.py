@@ -57,7 +57,7 @@ if __name__=="__main__":
             sys.argv[0]=uncompiler.__file__
             sys.argv[1:]=['']
             for file in files:
-                if not file.endswith(".pyc"):
+                if not file.lower().endswith(".pyc"):
                     print("警告: %s 可能不是pyc文件"%file,file=sys.stderr)
                 run_uncompile(file)
         else:

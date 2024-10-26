@@ -30,7 +30,7 @@ def __get(wid,key=''): # 用于从bound中获取绑定数据
         if bound[wid][i][0]==key:
             return bound[wid][i]
 def move(widget,x=None,y=None,width=None,height=None):
-    "移动控件或窗口widget至某坐标, 参数都为可选参数。"
+    "移动控件或窗口widget至指定坐标, 参数都为可选参数。"
     x=x if x!=None else widget.winfo_x()
     y=y if y!=None else widget.winfo_y()
     width=width if width!=None else widget.winfo_width()
