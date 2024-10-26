@@ -1,13 +1,7 @@
-本模块实现了一些对Python对象的测试程序，以及一套pyc文件的压缩、加壳和脱壳工具链。这里着重介绍加壳和脱壳的工具链。
-## 0.依赖的模块
-这些加壳和脱壳的工具依赖于`pyobject`库，尤其是`pyobject.code_`这个子模块中的`Code`类。`pyobject`可通过`pip install pyobject`命令安装。
+本文件夹实现了一些对Python对象的测试程序，以及一套pyc文件的压缩、加壳和脱壳工具链，并存放了`browser.py`原先的中文本地化版本`browser_chs.py`。这里着重介绍加壳和脱壳的工具链。
 ## 1.命令行
 ```
 python pyc_zipper_xxx.py <待处理的.pyc文件1> <.pyc文件2> ...
-```
-对于处理目录的工具：
-```
-python pyc_zipper_处理目录.py <待处理的目录>
 ```
 ## 2.压缩壳
 `pyc_zipper_bz2.py`，`pyc_zipper_lzma.py`和`pyc_zipper_zlib.py`是为.pyc文件添加压缩壳的工具，加壳后的.pyc文件在运行时，会调用Python内置的`bz2`，`lzma`或`zlib`模块对压缩前的字节码进行自解压缩，再执行解压后的字节码。
@@ -31,16 +25,15 @@ exec(marshal.loads(lzma.decompress(b'\xfd7zXZ...')))
 #### 压缩效率的对比
 经测试，一般同一`.pyc`文件使用`lzma`加壳后的体积最小，`bz2`次之，`zlib`效果最差。
 #### 兼容性
-经测试，这些压缩工具兼容3.7至3.10的Python版本。
-而针对3.11及以上版本的适配，作者正在开发中。
+这些压缩工具兼容所有Python 3版本，由于不依赖特定版本的字节码。
 ## 3.混淆和防反编译壳
-前面的压缩工具并不能防止`.pyc`文件被`uncompyle6`等库反编译。要防止反编译，还需要用到混淆工具`pyc_zipper_保护字节码.py`，混淆字节码的指令，并混淆变量名。
+前面的压缩工具并不能防止`.pyc`文件被`uncompyle6`等库反编译。要防止反编译，还需要用到混淆工具`pyc_zipper_obfuscate.py`，混淆字节码的指令，并混淆变量名。
 这是混淆部分的核心代码（如果有更好的混淆方法，可以在issue中提出）：
 ```py
 def process_code(co):
     co.co_lnotab = b''
-    if co.co_code[-4:]!=b'S\x00S\x00': # 未添加过
-        co.co_code += b'S\x00' # 增加一个无用的RETURN_VALUE指令，用于干扰反编译器的解析
+    if co.co_code[-4:]!=RET_INSTRUCTION*2: # 未添加过
+        co.co_code += RET_INSTRUCTION # 增加一个无用的返回指令，用于干扰反编译器的解析
     co.co_filename = ''
     co_consts = co.co_consts
     # 无需加上co.co_posonlyargcount的值 (Python 3.8+中)
@@ -58,7 +51,7 @@ def process_code(co):
     return co
 ```
 #### 兼容性
-这个混淆工具兼容从3.4到3.13的所有Python版本。
+这个混淆工具也兼容所有Python 3版本，由于不依赖特定版本的字节码。
 ## 4.脱壳工具
-`pyc_zipper_脱壳.py`这个脱壳工具支持脱壳前面压缩工具压缩过的`.pyc`文件，将压缩前的`.pyc`文件还原。
+`pyc_zipper_unpack.py`这个脱壳工具支持脱壳前面压缩工具压缩过的`.pyc`文件，将压缩前的`.pyc`文件还原。
 但是，脱壳工具无法还原混淆工具混淆过的指令和变量名。

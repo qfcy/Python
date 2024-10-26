@@ -23,7 +23,7 @@ def decrypt(encrypted,password):
     sha256 = encrypted[:64]
     if hashlib.sha256(password.encode("utf-8")).hexdigest().encode()\
                    != sha256: # 检验密码是否正确
-        raise TypeError("Invalid password")
+        raise ValueError("Invalid password")
 
     mask = hashlib.sha256((password*2).encode("utf-8")).hexdigest() # 掩码
     mask_num = int.from_bytes(mask.encode(),"little")

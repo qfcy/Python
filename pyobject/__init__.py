@@ -1,6 +1,5 @@
 """一个提供操作Python对象底层工具的模块。
 A utility tool with some submodules for operating internal python objects.
-
 """
 import sys
 from warnings import warn
@@ -8,14 +7,14 @@ from pprint import pprint
 
 __email__="3076711200@qq.com"
 __author__="qfcy qq:3076711200"
-__version__="1.2.4"
+__version__="1.2.5"
 
 _ignore_names=["__builtins__","__doc__"]
 __all__=["objectname","bases","describe","desc"]
 
 def objectname(obj):
-    """objectname(obj) - 返回一个对象的名称,形如xxmodule.xxclass。
-如:objectname(int) -> 'builtins.int'"""
+    """objectname(obj) - Returns the name of an object in the format xxmodule.xxclass.
+For example: objectname(int) -> 'builtins.int'."""
     if not obj.__class__==type:obj=obj.__class__
     if obj.__module__=="__main__":return obj.__name__
     return "{}.{}".format(obj.__module__,obj.__name__)
@@ -30,8 +29,8 @@ def objectname(obj):
 ##        else:obj=obj[0]
 ##        print(obj)
 def bases(obj,level=0,tab=4):
-    '''bases(obj) - 打印出该对象的基类
-tab:缩进的空格数,默认为4。'''
+    '''bases(obj) - Prints the base classes of the given object.
+tab: The number of spaces for indentation, default is 4.'''
     if not obj.__class__==type:obj=obj.__class__
     if obj.__bases__:
         if level:print(' '*(level*tab),end='')
@@ -39,14 +38,14 @@ tab:缩进的空格数,默认为4。'''
         for cls in obj.__bases__:
             bases(cls,level,tab)
 
-
+_trans_table=str.maketrans("\n\t","  ") # 去除特殊字符
 def _shortrepr(obj,maxlength=150):
-    result=repr(obj)
+    result=repr(obj).translate(_trans_table)
     if len(result)>maxlength:
         return result[:maxlength]+"..."
     return result
 
-###无递归
+###无递归的旧版
 ##def describe(obj,verbose=True,needhelp=False,**kwargs):
 ##    "Prints the properties of an object."
 ##    __builtins__.print(repr(obj)+" :",**kwargs)
@@ -57,12 +56,12 @@ def _shortrepr(obj,maxlength=150):
 ##                pprint("{}:{}".format(attr,value),**kwargs)
 ##                if needhelp:help(value)
 def describe(obj,level=0,maxlevel=1,tab=4,verbose=False,file=None):
-    '''"描述"一个对象,即打印出对象的各个属性。
-参数说明:
-maxlevel:打印对象属性的层数。
-tab:缩进的空格数,默认为4。
-verbose:一个布尔值,是否打印出对象的特殊方法(如__init__)。
-file:一个类似文件的对象，用于打印输出。
+    '''"Describe" an object by printing its attributes.
+Parameters:
+maxlevel: The number of levels to print the object's attributes.
+tab: The number of spaces for indentation, default is 4.
+verbose: A boolean value indicating whether to print special methods (e.g., __init__).
+file: A file-like object for printing output.
 '''
     if file is None:file=sys.stdout
     if level==maxlevel:
@@ -86,7 +85,7 @@ file:一个类似文件的对象，用于打印输出。
                                 tab,verbose,file)
                     else:print(_shortrepr(getattr(obj,attr)),file=file)
                 except AttributeError:
-                    print("<AttributeError!>",end='',file=file)
+                    print("<AttributeError!>",file=file)
 
 desc=describe #别名
 # 导入其他子模块中的函数和类
@@ -107,7 +106,8 @@ try:
 except (ImportError,SystemError):warn("Failed to import pyobject.code_.")
 try:
     from pyobj_extension import *
-    __all__.extend(["convptr","py_incref","py_decref","list_in"])
+    __all__.extend(["convptr","py_incref","py_decref","getrealrefcount",
+                    "setrefcount","list_in"])
 except ImportError:warn("Failed to import module pyobj_extension.")
 
 def test():

@@ -1,3 +1,4 @@
+# pyobject.browser模块的中文汉化版本
 "以图形方式浏览Python对象的模块。A module providing a visual interface to browse Python objects."
 import sys,os,types,typing,ctypes
 import tkinter as tk
@@ -8,7 +9,7 @@ from inspect import isfunction,ismethod,isgeneratorfunction,isgenerator,iscode
 try:from pyobject import objectname,_shortrepr
 except ImportError:from __init__ import objectname,_shortrepr
 
-_IMAGE_PATH=os.path.join(os.path.split(__file__)[0],"images")
+_IMAGE_PATH=os.path.join(os.path.split(__file__)[0],"..","images")
 
 def isfunc(obj):
     # 判断一个对象是否为函数或方法
@@ -42,7 +43,7 @@ def get_dpi_scale():
     return dpi_x/96, dpi_y/96
 
 class ScrolledTreeview(ttk.Treeview):
-    "A scrollable Treeview widget inherited from ttk.Treeview."
+    "可滚动的Treeview控件,继承自ttk.Treeview。"
     def __init__(self,master,**options):
         self.frame=tk.Frame(master)
         ttk.Treeview.__init__(self,self.frame,**options)
@@ -63,7 +64,7 @@ class ScrolledTreeview(ttk.Treeview):
         self.frame.place(**options)
 
 class ObjectBrowser():
-    title="Python Object Browser"
+    title="Python对象浏览器"
     def __init__(self,master,obj,verbose=False,name="obj",
                  multi_window=False,refresh_history=True,
                  root_obj=None,rootobj_name=None):
@@ -96,8 +97,8 @@ class ObjectBrowser():
         self.label.pack(side=tk.LEFT,fill=tk.X)
         toolbar.pack(side=tk.TOP,fill=tk.X)
         self.tvw=ScrolledTreeview(self.master,column='.',selectmode=tk.EXTENDED)
-        self.tvw.heading("#0",text="Attribute/Index/Key")
-        self.tvw.heading("#1",text="Value")
+        self.tvw.heading("#0",text="属性/索引/键")
+        self.tvw.heading("#1",text="值")
         self.tvw.column("#0", stretch = 0, # 不跟随窗口大小的变化拉伸
                         width = int(160*(get_dpi_scale()[0] if sys.platform == "win32" else 1)))
         self.tvw.column("#1", stretch=1)
@@ -108,11 +109,11 @@ class ObjectBrowser():
         self.tvw.tag_configure("error",foreground="red") # 经测试, Python 3.7-3.9中无法显示颜色效果(bug?)
         self.master.bind("<F5>",self.navigate_history) #refresh)
 
-        self.functions_tag=self.tvw.insert('',index=0,text="Functions/Methods")
-        self.attributes_tag=self.tvw.insert('',index=1,text="Attributes")
-        self.classes_tag=self.tvw.insert('',index=2,text="Classes")
-        self.lst_tag=self.tvw.insert('',index=3,text="List data")
-        self.dict_tag=self.tvw.insert('',index=4,text="Dictionary data")
+        self.functions_tag=self.tvw.insert('',index=0,text="函数、方法")
+        self.attributes_tag=self.tvw.insert('',index=1,text="属性")
+        self.classes_tag=self.tvw.insert('',index=2,text="类")
+        self.lst_tag=self.tvw.insert('',index=3,text="列表数据")
+        self.dict_tag=self.tvw.insert('',index=4,text="字典数据")
         self.tvw.item(self.attributes_tag,open=True) # 展开项
         self.tvw.item(self.classes_tag,open=True)
         self.tvw.item(self.lst_tag,open=True)
@@ -121,9 +122,9 @@ class ObjectBrowser():
             style = ttk.Style(self.master)
             style.configure("Treeview", rowheight=int(20*get_dpi_scale()[1]))
 
-        editor = ttk.Labelframe(self.master, text='Edit value',
+        editor = ttk.Labelframe(self.master, text='编辑值',
                                 width=100, height=100)
-        self.okbtn=ttk.Button(editor,text="OK",
+        self.okbtn=ttk.Button(editor,text="确定",
                               command=self.ok_click,state=tk.DISABLED)
         self.okbtn.pack(side=tk.RIGHT)
         self.editor = tk.Entry(editor,width=45)
@@ -133,10 +134,9 @@ class ObjectBrowser():
         self.tvw.pack(side=tk.BOTTOM,expand=True,fill=tk.BOTH)
 
         self.menu=tk.Menu(self.master,tearoff=False)
-        self.menu.add_command(label="Open in new window",command=self.open_in_new_window,
-                              state=tk.DISABLED)
-        self.menu.add_command(label="Add",command=self.new_item,state=tk.DISABLED)
-        self.menu.add_command(label="Delete",command=self.del_item,state=tk.DISABLED)
+        self.menu.add_command(label="新窗口打开",command=self.open_in_new_window,state=tk.DISABLED)
+        self.menu.add_command(label="新增",command=self.new_item,state=tk.DISABLED)
+        self.menu.add_command(label="删除",command=self.del_item,state=tk.DISABLED)
         def on_rightclick(event):
             if len(self.tvw.selection()) <= 1:
                 self.tvw.event_generate("<Button-1>",x=event.x,y=event.y) # 选择当前右击的项
@@ -203,7 +203,7 @@ class ObjectBrowser():
         "更新自身显示的数据。"
         obj=self.obj
         self.master.title("{} - {}".format(self.title,objectname(obj)))
-        self.label["text"]=" Path: %s  Object: %s" % (self.name, _shortrepr(obj))
+        self.label["text"]=" 路径: %s 对象: %s" % (self.name, _shortrepr(obj))
         self.clear()
         max_length = 500 # 避免引发性能问题
         # 添加属性
@@ -275,16 +275,16 @@ class ObjectBrowser():
         selection = self.tvw.selection()
         if len(selection) != 1:
             self.okbtn['state'] = tk.DISABLED
-            self.menu.entryconfig("Add",state=tk.DISABLED)
+            self.menu.entryconfig("新增",state=tk.DISABLED)
             self.editor.delete(0,tk.END)
             if len(selection) > 1:
-                self.menu.entryconfig("Open in new window",state=tk.NORMAL)
+                self.menu.entryconfig("新窗口打开",state=tk.NORMAL)
             else:
-                self.menu.entryconfig("Open in new window",state=tk.DISABLED)
+                self.menu.entryconfig("新窗口打开",state=tk.DISABLED)
             if len(selection) > 0:
-                self.menu.entryconfig("Delete",state=tk.NORMAL)
+                self.menu.entryconfig("删除",state=tk.NORMAL)
             else:
-                self.menu.entryconfig("Delete",state=tk.DISABLED)
+                self.menu.entryconfig("删除",state=tk.DISABLED)
         else:
             parent=self.tvw.parent(selection[0])
             if parent:
@@ -300,22 +300,22 @@ class ObjectBrowser():
                 self.editor.insert(0,value_str)
                 if parent==self.lst_tag and isinstance(self.obj,tuple):
                     self.okbtn['state'] = tk.DISABLED # 元组的属性不可编辑
-                    self.menu.entryconfig("Add",state=tk.DISABLED)
-                    self.menu.entryconfig("Delete",state=tk.DISABLED)
+                    self.menu.entryconfig("新增",state=tk.DISABLED)
+                    self.menu.entryconfig("删除",state=tk.DISABLED)
                 else:
                     self.okbtn['state'] = tk.NORMAL
-                    self.menu.entryconfig("Add",state=tk.NORMAL)
-                    self.menu.entryconfig("Delete",state=tk.NORMAL)
-                self.menu.entryconfig("Open in new window",state=tk.NORMAL)
+                    self.menu.entryconfig("新增",state=tk.NORMAL)
+                    self.menu.entryconfig("删除",state=tk.NORMAL)
+                self.menu.entryconfig("新窗口打开",state=tk.NORMAL)
             else:
                 self.okbtn['state'] = tk.DISABLED
                 self.editor.delete(0,tk.END)
                 if selection[0]==self.lst_tag and not isinstance(self.obj,list) \
                     or selection[0]==self.dict_tag and not isinstance(self.obj,dict):
-                    self.menu.entryconfig("Add",state=tk.DISABLED)
-                else:self.menu.entryconfig("Add",state=tk.NORMAL)
-                self.menu.entryconfig("Open in new window",state=tk.DISABLED)
-                self.menu.entryconfig("Delete",state=tk.DISABLED)
+                    self.menu.entryconfig("新增",state=tk.DISABLED)
+                else:self.menu.entryconfig("新增",state=tk.NORMAL)
+                self.menu.entryconfig("新窗口打开",state=tk.DISABLED)
+                self.menu.entryconfig("删除",state=tk.DISABLED)
     def on_open(self,event=None,new_window=False):
         #当双击Treeview或按回车时, 进一步浏览选中的属性。
         #selection为所有选中项的元组,以('Hxxx',)的形式表示
@@ -365,21 +365,21 @@ class ObjectBrowser():
         if not self.tvw.selection():return
         selected=self.tvw.selection()[0]
         if self.dict_tag in (selected,self.tvw.parent(selected)):
-            key=simpledialog.askstring("New item","Enter key (use quotes for strings):")
+            key=simpledialog.askstring("新增","输入字典键 (如果为字符串，需要加引号):")
             if not key:return
-            value=simpledialog.askstring("New item","Enter value:")
+            value=simpledialog.askstring("新增","输入值:")
             if not value:return
             self.obj[eval(key)]=eval(value)
         elif self.lst_tag in (selected,self.tvw.parent(selected)):
-            index=simpledialog.askstring("New item","Enter index for new item (0, 1, 2, ...):")
+            index=simpledialog.askstring("新增","输入新增列表项的索引 (0,1,2,...):")
             if not index:return
-            value=simpledialog.askstring("New item","Enter value:")
+            value=simpledialog.askstring("新增","输入值:")
             if not value:return
             self.obj.insert(int(index),eval(value))
         else:
-            attr=simpledialog.askstring("New item","Enter attribute name (no quotes needed):")
+            attr=simpledialog.askstring("新增","输入属性名称 (无需引号):")
             if not attr:return
-            value=simpledialog.askstring("New item","Enter value:")
+            value=simpledialog.askstring("新增","输入值:")
             if not value:return
             setattr(self.obj,attr,eval(value))
         self.navigate_history()
@@ -419,18 +419,14 @@ class ObjectBrowser():
 def browse(object,verbose=True,name="obj",
            mainloop=True,multi_window=False,refresh_history=True,
            root_obj=None,rootobj_name=None):
-    """Browse a Python object through a graphical interface.
-verbose: Similar to describe, it indicates whether to print special methods \
-of the object (e.g., __init__).
-name: Specifies the display name of the object.
-mainloop: Determines whether the function waits for the window to close before \
-exiting, meaning whether the browse function will be blocking.
-multi_window: Indicates whether to open a new window when double-clicking \
-(or pressing Enter) to browse a new object.
-refresh_history: Determines whether to re-fetch the object's \
-attributes when navigating backward or forward. If True, editing attributes \
-and then navigating will show changes in the object; otherwise, it will not.
-root_obj and rootobj_name: Specify the root object and its name (for internal use)."""
+    """以图形界面浏览一个Python对象。
+verbose:与describe相同,是否打印出对象的特殊方法(如__init__)。
+name:指定对象显示的名称。
+mainloop:是否等待窗口关闭后才退出函数，也就是browse函数是否会被阻塞。
+multi_window:双击(或按Enter)来浏览新对象时是否打开新窗口。
+refresh_history:后退或前进时，是否重新获取对象的属性。
+如果为True，编辑了属性再后退或前进，浏览到的对象就会变化，反之则不会。
+root_obj和rootobj_name:指定根对象及其名称(主要由内部使用)。"""
     root=tk.Tk()
     if sys.platform == "win32": # 高dpi支持
         dpi_x,dpi_y = get_dpi_scale()
