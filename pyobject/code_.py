@@ -1,4 +1,4 @@
-"提供操作Python字节码的工具。"
+"提供操作Python字节码的工具。Provides tools for manipulating Python native bytecode."
 import sys
 try:
     from importlib._bootstrap_external import MAGIC_NUMBER
