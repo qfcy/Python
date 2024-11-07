@@ -1,7 +1,7 @@
 本仓库用于储存作者长期制作的python源代码, 包含40多个python项目，涉及爬虫、算法、OpenGL、tkinter、面向对象编程等多个领域。  
 
 **本仓库内部分项目如`pyobject`、`tk_dragtool`、`timer_tool`等已经迁出本仓库，并且不会在本仓库中更新，新的仓库请移步我的个人主页[github.com/qfcy](https://github.com/qfcy)查看。**  
-**Some projects in this repository, such as `pyobject`, `tk_dragtool`, and `timer_tool`, have been migrated out of this repository and will not be updated here. Please visit my personal homepage [github.com/qfcy](https://github.com/qfcy) to view the new repositories.**  
+**Some projects in this repository including `pyobject`, `tk_dragtool` and `timer_tool`, have been migrated out of this repository and will not be updated here. Please visit my personal homepage [github.com/qfcy](https://github.com/qfcy) to view the new repositories.**  
 
 这些是仓库中的一些亮点项目：
 
