@@ -25,4 +25,4 @@ Traceback (most recent call last):
   File "E:\Python\ulang\parser\parsergenerator.py", line 423, in lr0_goto
     s = s1
 UnboundLocalError: local variable 's1' referenced before assignment
-								copyright 2020-2022.3 七分诚意
+								copyright 2020-2022.3 qfcy

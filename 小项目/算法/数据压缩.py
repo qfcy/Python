@@ -1,5 +1,5 @@
 # 部分来自其他项目
-import struct
+import struct,sys,os
 
 # 压缩的元组的第一项是一个索引，引用之前已在字典中的旧子串，为-1则表示不引用
 # 元组的第二项表示增加的新字符，可以为空值
@@ -45,6 +45,7 @@ def decompress(packed):
 
 def to_binary(packed_data):
     # 将压缩后的数据转换为二进制格式，要求字符范围必须为0~255
+    # 开头第1个字节表示存储索引用的字节数，如2表示用2字节存储索引
     # 找到所有正索引
     indices = [index for index, ch in packed_data if index >= 0]
     max_index = max(indices) if indices else 0
@@ -60,12 +61,12 @@ def to_binary(packed_data):
 
     for index, ch in packed_data:
         if ch != '':
-            # 如果有新增字符，先存储索引
+            # 如果有字符，先存储索引
             binary_data += struct.pack(fmt, index)
-            # 再存储字符，假设为单字节字符
+            # 再存储字符 (单字节)
             binary_data += bytes((ord(ch),))
         else:
-            # 如果没有新增字符，存储 -(index + 2)
+            # 如果无字符，用负数（-(index + 2)）表示索引
             packed_index = -(index + 2)
             binary_data += struct.pack(fmt, packed_index)
 
@@ -81,7 +82,7 @@ def from_binary(binary_data):
     elif type_byte == 2:
         fmt = 'h';size = 2
     else:
-        raise ValueError("Unknown type mark")
+        raise ValueError("Unknown mark type")
 
     packed_data = []
     i = 1
@@ -102,9 +103,7 @@ def from_binary(binary_data):
             i += size
     return packed_data
 
-if __name__ == '__main__':
-    test_cases = ["abab","a"*16, # 1+2+3+4+5+1=16, (对于重复的字符串，字典内的子串长度会逐渐增加）
-                  "中文"]
+def test(test_cases):
     binary_msg = [''.join(chr(char) for char in message.encode("utf-8"))
                   for message in test_cases] # 确保在0-255范围内，便于转为二进制
     for i in range(len(test_cases)):
@@ -115,3 +114,31 @@ if __name__ == '__main__':
               "压缩率: %.2f%%" % (len(binary)/len(s)*100))
         unpacked = decompress(from_binary(binary))
         assert unpacked == s
+
+def _ask_replace(filename):
+    if not os.path.isfile(filename):return True
+    result=input("文件 %s已存在,要替换它吗? (Y/N) "%filename)
+    return result.lower().startswith('y')
+
+FILETYPE=".compressed"
+if __name__ == '__main__':
+    if len(sys.argv)>1:
+        for file in sys.argv[1:]:
+            with open(file,"rb") as f:
+                raw=f.read()
+            if file.lower().endswith(FILETYPE):
+                decompressed_file = file[:-len(FILETYPE)]
+                if not _ask_replace(decompressed_file):continue
+                decompressed=decompress(from_binary(raw))
+                with open(decompressed_file,"wb") as f:
+                    f.write(bytes(ord(char) for char in decompressed))
+            else:
+                data="".join(chr(byte) for byte in raw)
+                compressed_file=file+FILETYPE
+                with open(compressed_file,"wb") as f:
+                    f.write(to_binary(list(compress(data))))
+
+    else:    
+        test_cases = ["abab","a"*16, # 1+2+3+4+5+1=16, (对于重复的字符串，字典内的子串长度会逐渐增加）
+                      "中文"]
+        test(test_cases)

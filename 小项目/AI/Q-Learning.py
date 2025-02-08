@@ -28,7 +28,7 @@ for _ in range(num_episodes):
         # 获取下一个状态下可选的动作
         next_possible_actions = [i for i in range(6) if R[next_state][i] >= 0]
         # 更新 Q 表
-        Q[state][action] = Q[state][action] + alpha * (R[state][action] + gamma * max([Q[next_state][a] for a in next_possible_actions]) - Q[state][action])
+        Q[state][action] += alpha * (R[state][action] + gamma * max([Q[next_state][a] for a in next_possible_actions]) - Q[state][action])
         state = next_state
         if state == 5:
             break

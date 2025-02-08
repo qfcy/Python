@@ -65,6 +65,8 @@ class ScrolledTreeview(ttk.Treeview):
 
 class ObjectBrowser():
     title="Python对象浏览器"
+    MAX_VIEW_LEN=512 # 避免引发性能问题
+    MAX_EDITVALUE_LEN=3072
     def __init__(self,master,obj,verbose=False,name="obj",
                  multi_window=False,refresh_history=True,
                  root_obj=None,rootobj_name=None):
@@ -205,7 +207,6 @@ class ObjectBrowser():
         self.master.title("{} - {}".format(self.title,objectname(obj)))
         self.label["text"]=" 路径: %s 对象: %s" % (self.name, _shortrepr(obj))
         self.clear()
-        max_length = 500 # 避免引发性能问题
         # 添加属性
         attrs=dir(obj)
         for i in range(len(attrs)):
@@ -213,7 +214,7 @@ class ObjectBrowser():
             if self.verbose or not attr.startswith("_"):
                 try:
                     object=getattr(obj,attr)
-                    value=_shortrepr(object,max_length)
+                    value=_shortrepr(object,self.MAX_VIEW_LEN)
                     image=self._get_image(object)
                     self.tvw.insert(self._get_type(object), tk.END, #attr,
                                     text=attr, image=image,
@@ -235,7 +236,7 @@ class ObjectBrowser():
                 index=str(i)
                 try:
                     object=obj[i]
-                    value=_shortrepr(object,max_length)
+                    value=_shortrepr(object,self.MAX_VIEW_LEN)
                     image=self._get_image(object)
                     self.tvw.insert(self.lst_tag, tk.END,
                                     text=index, image=image,
@@ -252,7 +253,7 @@ class ObjectBrowser():
                 key_name=repr(key)
                 try:
                     object=obj[key]
-                    value=_shortrepr(object,max_length)
+                    value=_shortrepr(object,self.MAX_VIEW_LEN)
                     image=self._get_image(object)
                     self.tvw.insert(self.dict_tag, tk.END,
                                     text=key_name, image=image,
@@ -296,6 +297,8 @@ class ObjectBrowser():
                     value_str=repr(self.obj[int(attr)])
                 else:
                     value_str=repr(getattr(self.obj,attr))
+                if len(value_str) > self.MAX_EDITVALUE_LEN: # 限制最大长度
+                    value_str = value_str[:self.MAX_EDITVALUE_LEN]+" ..."
                 self.editor.delete(0,tk.END)
                 self.editor.insert(0,value_str)
                 if parent==self.lst_tag and isinstance(self.obj,tuple):

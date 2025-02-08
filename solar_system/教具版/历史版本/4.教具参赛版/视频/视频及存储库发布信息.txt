@@ -1,0 +1,37 @@
+﻿名称：用电脑模拟万有引力和宇宙，验证开普勒定律，会怎么样？
+简介：
+不断减速地球，地球神秘落入太阳中，却自己弹出来？
+
+这是一个计算机模拟万有引力、太阳系行星运动的软件，使用Python编写，
+应用了万有引力等物理公式计算，可以模拟出天体的椭圆轨道，
+以及验证物理教科书上的开普勒三大定律，第一、第二宇宙速度，模拟卫星变轨。
+支持使用Excel 创建和编辑天体，以及有趣的发射“飞船”功能。（高中物理教师可当作教具使用~）
+你还能在其中创造一个属于自己的宇宙。
+
+项目安装包：(网盘链接)
+项目源代码：https://gitcode.net/qfcy_/python-gravity-simulation【点“克隆”按钮，再点击"zip"，即可下载源代码】
+
+评论区 (备用)：
+一些同类的天体模拟网站：particlesandbox.com，gravitysimulator.org，以及 github.com/zkytech/Simulation-of-Star-Motion
+
+Gitcode 项目描述：
+万有引力、宇宙的计算机模拟，可以模拟出天体的椭圆轨道、以及太阳系中的太阳、行星及卫星。
+以及验证开普勒三大定律，第一、第二宇宙速度，模拟行星变轨。
+支持跟踪、切换行星，包含简单的发射“飞船”功能。
+支持读取Excel文件中的天体数据。图形部分使用turtle(tkinter)或Pygame库。
+你能在其中创造一个属于自己的宇宙。
+Github: https://gitcode.net/qfcy_/python-gravity-simulation
+
+github 项目描述：
+Python计算机模拟万有引力、太阳系行星运动的程序，
+模拟天体的椭圆轨道，
+以及验证开普勒三大定律、宇宙速度。创造一个属于自己的宇宙。
+Computer simulation of gravity and planetary motion in the solar system with Python,
+emulating the orbits of celestial bodies and verifying Kepler's three laws,
+supporting tracking and switching planets and simple "spacecraft" launching.
+Create a universe belonging to yourself.Have FUN!
+
+PyPI项目描述：
+Python模拟万有引力、太阳系行星运动的库，模拟天体轨道，验证开普勒三大定律。
+Computer simulation of gravity and planetary motion in the solar system,
+emulating the orbits of celestial bodies and verifying Kepler's three laws.
