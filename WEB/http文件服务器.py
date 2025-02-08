@@ -3,17 +3,18 @@
 # 然后运行"http文件服务器.py"即可
 # 命令行：python http文件服务器.py <端口号(可选)>
 
-import socket, sys, os, time, traceback, pprint
+import sys, os, time, traceback
+import socket, mimetypes
 from concurrent.futures import ThreadPoolExecutor
-from urllib.parse import parse_qs, unquote
-import chardet,mimetypes
+from urllib.parse import urlparse,parse_qs, unquote
+import chardet
 
 HEAD_100 = b"HTTP/1.1 100 Continue\n"
 HEAD_OK = b"HTTP/1.1 200 OK\n"
 HEAD_206 = b"HTTP/1.1 206 Partial Content\n"
 HEAD_404 = b"HTTP/1.1 404 Not Found\n"
 RECV_LENGTH = 16384 # sock.recv()一次接收内容的长度
-CHUNK_SIZE = 1<<19 # 0.5MB
+CHUNK_SIZE = 1<<20 # 1MB
 SEND_SPEED = 10 # 大文件的发送速度限制，单位为MB/s，设为非正数则不限速
 
 def _read_file_helper(head,file,chunk_size,start,end): # 分段读取文件使用的生成器
@@ -39,8 +40,14 @@ def convert_bytes(num): # 将整数转换为数据单位
         num /= 1024
     return f"{num:.2f}{units[-1]}B"
 
-def check_filetype(path): # 检查文件扩展名并返回content-type
+def get_mimetype(path):
+    mimetypes.types_map[".js"]="application/javascript"
     mime_type=mimetypes.guess_type(path)[0]
+    if mime_type=="text/plain":
+        mimetype=mimetypes.types_map.get(os.path.splitext(path)[1],"text/plain")
+    return mime_type
+def check_filetype(path): # 检查文件扩展名并返回content-type
+    mime_type=get_mimetype(path)
     if mime_type is None: # 未知类型
         return b"" # 不返回类型，由浏览器自行检测
     if mime_type.lower().startswith("text"):
@@ -53,18 +60,19 @@ def check_filetype(path): # 检查文件扩展名并返回content-type
                 if data:
                     detected=chardet.detect(data)
                     coding=detected["encoding"]
+            if coding=="ascii":
+                coding="utf-8"
         if coding is not None and detected["confidence"]>0.9:
             mime_type+=";charset=%s"%coding
     return b"Content-Type: %s\n"%mime_type.encode()
 
 def parse_head(req_head): # 解析请求头中的路径和查询参数
-    path = unquote(req_head.split(' ')[1])[1:] # 获取请求url后面的路径, 在请求数据第一行
-    split = path.rsplit("#",1)
-    path = split[0]
-    fragment = split[1] if len(split)==2 else None
-    split = path.split("?",1)
-    dir = split[0]
-    query = parse_qs(split[1],keep_blank_values=True) if len(split)==2 else {}
+    url = unquote(req_head.split(' ')[1])[1:] # 获取请求url后面的路径, 在请求数据第一行
+    parse_result = urlparse(url)
+    dir,query_str,fragment = parse_result.path,\
+        parse_result.query,parse_result.fragment
+    query = parse_qs(query_str,keep_blank_values=True)
+    fragment = fragment or None
     if dir == "": # 路径为空，则用当前路径
         dir="."
     dir=dir.replace("\\","/")
@@ -80,7 +88,7 @@ def get_dir_content(dir):
 <meta http-equiv="content-type" content="text/html;charset=utf-8">
 <title>{path} 的目录</title>
 </head><body>
-<h1>{path}的目录</h1><p></p>""".encode()
+<h1>{path}的目录</h1>""".encode()
     # 获取当前路径下的各个文件、目录名
     subdirs=[] # 子目录名
     subfiles=[] # 子文件名
@@ -94,14 +102,23 @@ def get_dir_content(dir):
     subfiles.sort(key=lambda s:s.lower())
 
     if dir != ".":
-        response += f'\n<a href="/{dir}/..">[上级目录]</a><p></p>'.encode()
+        response += f'\n<p><a href="/{dir}/..">[上级目录]</a></p>'.encode()
     # 依次显示各个子文件、目录
     for sub in subdirs:
-        response += f'\n<a href="/{dir}/{sub}">[目录]{sub}</a><p></p>'.encode()
+        response += f'\n<p><a href="/{dir}/{sub}">[目录]{sub}</a></p>'.encode()
     for sub in subfiles:
         size=convert_bytes(os.path.getsize(os.path.join(path,sub)))
-        response += f'''\n<a href="/{dir}/{sub}">{sub}</a>\
-<span style="color: #707070;">&nbsp;{size}</span><p></p>'''.encode()
+        mime_type=get_mimetype(sub) or ""
+        if mime_type.startswith("video"):
+            play_elem=f'''\
+<span>&nbsp;</span>\
+<a href="/{dir}/{sub}?_PyHttpServer_operation=play">播放</a>'''
+        else:
+            play_elem=""
+
+        response += f'''\n<p><a href="/{dir}/{sub}">{sub}</a>\
+{play_elem}\
+<span style="color: #707070;">&nbsp;{size}</span></p>'''.encode()
     response += b"\n</body></html>"
     return response
 
@@ -110,7 +127,7 @@ def get_file(path,start=None,end=None): # 返回文件的数据
     if start is not None or end is not None:
         start = start or 0
         end = end or size
-        head = HEAD_206 + check_filetype(path)
+        head = (HEAD_206 if start>0 else HEAD_OK) + check_filetype(path)
         head += b"Content-Range: bytes %d-%d/%d\n\n" % (start,end,size)
     else:
         start = 0; end = size
@@ -119,7 +136,21 @@ def get_file(path,start=None,end=None): # 返回文件的数据
         head += b"Content-Length: %d\n\n" % size # 加入文件长度
     return _read_file_helper(head,open(path,'rb'),CHUNK_SIZE,start,end) # 分段读取文件
 
-def getcontent(dir,start=None,end=None): # 根据url的路径dir构造响应数据
+def getcontent(dir,query={},fragment=None,start=None,end=None): # 根据url的路径dir构造响应数据
+    mime_type=get_mimetype(dir) or ""
+    if "play" in query.get("_PyHttpServer_operation",[]) and \
+        mime_type.startswith("video"):
+        response = HEAD_OK + f"""
+<html><head>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<title>{dir}</title>
+</head><body>
+<video controls name="media" preload="auto">
+    <source src="/{dir}" type="{mime_type}">
+</video>
+</body></html>""".encode()
+        return response
+
     # 将dir转换为系统路径, 放入path
     path = os.path.join(os.getcwd(),dir)
     try:
@@ -251,7 +282,7 @@ def get_request_info(data):
 
 def handle_get(req_head,req_info):
     url=unquote(req_head.split(' ')[1])
-    dir=parse_head(req_head)[0]
+    dir,query,fragment=parse_head(req_head)
     if "Range" in req_info: # 断点续传
         range_=req_info["Range"].split("=",1)[1]
         start,end=range_.split("-")
@@ -260,10 +291,10 @@ def handle_get(req_head,req_info):
         print(address,"访问URL: %s (从 %s 到 %s 断点续传)" % (url,
             convert_bytes(start) if start is not None else None,
             convert_bytes(end) if end is not None else "末尾"))
-        return getcontent(dir,start,end)
+        return getcontent(dir,query,fragment,start,end)
     else:
         print(address,"访问URL:",url)
-        return getcontent(dir) # 获取目录的数据
+        return getcontent(dir,query,fragment) # 获取目录的数据
 
 def handle_client(sock, address):# 处理客户端请求
     raw = sock.recv(RECV_LENGTH)

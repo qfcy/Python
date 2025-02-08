@@ -207,8 +207,8 @@ The code argument can be either Code or the built-in CodeType."""
         "Create a Code instance from a .pyc file using marshal."
         with open(filename,'rb') as f:
             data=f.read()
-            header = 16 if data[16]==227 else 12
-            data=data[header:]
+            header_len = 16 if data[16] in (0x63,0xe3) else 12 # 0xe3为cpython，0x63为pypy
+            data=data[header_len:]
             return cls(marshal.loads(data))
     @classmethod
     def from_file(cls,filename):
