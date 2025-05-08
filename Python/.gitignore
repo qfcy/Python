@@ -1,7 +1,0 @@
-*__pycache__*
-*.lnk
-# 兼容 更新文件工具.py
-*.git/*
-*.idea/*
-*.vs/*
-*.vscode/*
