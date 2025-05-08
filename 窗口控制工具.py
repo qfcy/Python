@@ -1,10 +1,18 @@
 from ctypes import *
+from ctypes import wintypes
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter.simpledialog import askstring
 import time
 
 __version__ = '1.1.1'
+
+class Rect(Structure):
+    _fields_ = [("left", wintypes.LONG),
+                ("top", wintypes.LONG),
+                ("right", wintypes.LONG),
+                ("bottom", wintypes.LONG)]
+
 # 以下代码用于管理按钮
 ttk._Button=ttk.Button
 buttons=[]
@@ -26,6 +34,7 @@ GWL_EXSTYLE = -20
 SW_MINIMIZE = 6
 SW_MAXIMIZE = 3
 SW_RESTORE = 9
+SW_HIDE = 0
 
 WS_BORDER = 0x800000
 WS_CAPTION = 0xC00000 # WS_BORDER Or WS_DLGFRAME
@@ -48,7 +57,9 @@ WS_EX_WINDOWEDGE = 0x100
 
 LWA_ALPHA = 0x2;LWA_COLORKEY=0x1
 WS_EX_LAYERED = 0x80000
-hwnd=0;_top=False;old=(WS_VISIBLE,0)
+hwnd=0;_top=False;_fullscreen=False
+old_style=(WS_VISIBLE,0)
+rect=Rect()
 
 def top():
     global _top
@@ -75,9 +86,11 @@ def settitle(): # 设置标题
     title=askstring('','输入窗口标题')
     windll.user32.SetWindowTextW(hwnd, title)
 
-def backup_style(): # 备份原先的窗口样式
-    global old
-    old = (windll.user32.GetWindowLongA(hwnd,GWL_STYLE),
+def backup_attributes(): # 备份原先的窗口属性
+    global old_style,rect
+    rect = Rect()
+    windll.user32.GetWindowRect(hwnd, byref(rect))
+    old_style = (windll.user32.GetWindowLongA(hwnd,GWL_STYLE),
            windll.user32.GetWindowLongA(hwnd,GWL_EXSTYLE))
 
 def set_style():# 设置窗口样式
@@ -95,24 +108,24 @@ def set_style():# 设置窗口样式
         win.destroy()
 
     def default():
-        windll.user32.SetWindowLongA(hwnd, GWL_STYLE, old[0])
-        windll.user32.SetWindowLongA(hwnd, GWL_EXSTYLE, old[1])
+        windll.user32.SetWindowLongA(hwnd, GWL_STYLE, old_style[0])
+        windll.user32.SetWindowLongA(hwnd, GWL_EXSTYLE, old_style[1])
     _addoption(win,'默认样式',default)
     # 设置GWL_STYLE时须加入WS_VISIBLE+WS_CLIPSIBLINGS+WS_CLIPCHILDREN,使窗口可用
     _addoption(win,'无边框',
                lambda:windll.user32.SetWindowLongA(hwnd, GWL_STYLE,
-                                WS_VISIBLE+WS_CLIPSIBLINGS+WS_CLIPCHILDREN))
+               old_style[0] & (~WS_BORDER)))
     _addoption(win,'细边框',
                lambda:windll.user32.SetWindowLongA(hwnd, GWL_STYLE,
-                    WS_VISIBLE+WS_CLIPSIBLINGS+WS_CLIPCHILDREN + WS_THICKFRAME))
+               old_style[0] | WS_THICKFRAME | WS_BORDER))
     _addoption(win,'边框加粗',
                lambda:windll.user32.SetWindowLongA(hwnd,
-                                            GWL_EXSTYLE, WS_EX_CLIENTEDGE))
+                                            GWL_EXSTYLE, old_style[1] | WS_EX_CLIENTEDGE))
     _addoption(win,'允许文件拖入',
         lambda:windll.user32.SetWindowLongA(hwnd,
-                                            GWL_EXSTYLE, WS_EX_ACCEPTFILES))
+                                            GWL_EXSTYLE, old_style[1] | WS_EX_ACCEPTFILES))
     _addoption(win,'工具窗口',
-        lambda:windll.user32.SetWindowLongA(hwnd,GWL_EXSTYLE, WS_EX_TOOLWINDOW))
+        lambda:windll.user32.SetWindowLongA(hwnd,GWL_EXSTYLE,old_style[1] | WS_EX_TOOLWINDOW))
 
     ttk._Button(win,text='取消',command=win.destroy).pack(side=tk.RIGHT)
     ttk._Button(win,text='确定',command=confirm).pack(side=tk.RIGHT)
@@ -136,13 +149,30 @@ def set_alpha():# 设置窗口透明度
     ttk._Button(win,text='取消',command=win.destroy).pack(side=tk.RIGHT)
     ttk._Button(win,text='确定',command=confirm).pack(side=tk.RIGHT)
 
+def fullscreen(): # 全屏
+    global _fullscreen
+    if not _fullscreen:
+        windll.user32.SetWindowLongA(hwnd, GWL_STYLE, old_style[0] & (~WS_BORDER))
+        #windll.user32.MoveWindow(hwnd, 0, 0, root.winfo_screenwidth(),
+        #                         root.winfo_screenheight(),True)
+        windll.user32.ShowWindow(hwnd, SW_MAXIMIZE)
+    else:
+        windll.user32.SetWindowLongA(hwnd, GWL_STYLE, old_style[0])
+        windll.user32.MoveWindow(hwnd, rect.left, rect.top, rect.right-rect.left,
+                                 rect.bottom-rect.top, True)
+        windll.user32.ShowWindow(hwnd, SW_RESTORE)
+    _fullscreen = not _fullscreen
+
+def hide(): # 隐藏窗口
+    windll.user32.ShowWindow(hwnd,SW_HIDE)
+
 def findwin(*args):
     global hwnd,_top
     hwnd=windll.user32.FindWindowW(c_char_p(None),winname.get())
-    print(hwnd)
+    #print(hwnd)
     _setbtn()
     _top=False
-    backup_style()
+    backup_attributes()
 
 class PointAPI(Structure):
     #PointAPI类型,用于获取鼠标坐标
@@ -164,7 +194,7 @@ def _getwin(event):
     winname.trace_remove('write',__callback_name) # 避免调用set方法时修改了hwnd
     winname.set(title)
     winname.trace('w',findwin)
-    if prev2 != hwnd:backup_style()
+    if prev2 != hwnd:backup_attributes()
     _setbtn()
 
 def select_win():
@@ -174,7 +204,7 @@ def select_win():
     window.attributes("-alpha",0.2)
     window.attributes("-topmost",True)
     window.attributes("-fullscreen",True)
-    window.bind('<Button-1>',_getwin)
+    window.bind('<B1-ButtonRelease>',_getwin)
 
 root=tk.Tk()
 root.title('窗口控制工具')
@@ -203,5 +233,9 @@ ttk.Button(frame,text='更改样式',command=set_style,
            state=tk.DISABLED).grid(row=4,column=2)
 ttk.Button(frame,text='更改透明度',command=set_alpha,
            state=tk.DISABLED).grid(row=5,column=1)
+ttk.Button(frame,text='全屏/退出全屏',command=fullscreen,
+           state=tk.DISABLED).grid(row=5,column=2)
+ttk.Button(frame,text='隐藏',command=hide,
+           state=tk.DISABLED).grid(row=6,column=1)
 frame.pack()
 root.mainloop()

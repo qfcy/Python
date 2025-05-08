@@ -1,0 +1,28 @@
+1. 如何安装
+	在"用户目录\AppData\Local"目录下新建一个"rply\rply\cache"的3层文件夹, 将"补丁.json"复制到新建的cache目录下, 并重命名为"ulang_grammar-1-a758abb29bcd339d38a1212c87b0bc5287578f13.json", 重启ulang, 测试。
+	注: AppData文件夹默认是隐藏的, 可能需要恢复显示。
+
+2.为什么需要此补丁
+	用uncompyle6反编译生成的py文件(尤其是parser部分, 有少量bug, 导致了不能自动生成语法树文件(也就是上述的补丁.json)。
+	TODO: 修复不能自动生成语法树文件的bug。
+
+附完整错误信息: 
+Traceback (most recent call last):
+  File "E:\Python\ulang\__main__.py", line 10, in <module>
+    from ulang.runtime.main import main
+  File "E:\Python\ulang\__init__.py", line 5, in <module>
+    from ulang.parser.core import Parser
+  File "E:\Python\ulang\parser\core.py", line 129, in <module>
+    class Parser:
+  File "E:\Python\ulang\parser\core.py", line 1643, in Parser
+    parser_ = LRParser(pg_.build())
+  File "E:\Python\ulang\parser\parsergenerator.py", line 162, in build
+    table = LRTable.from_grammar(g)
+  File "E:\Python\ulang\parser\parsergenerator.py", line 253, in from_grammar
+    C = cls.lr0_items(grammar, add_count, cidhash, goto_cache)
+  File "E:\Python\ulang\parser\parsergenerator.py", line 383, in lr0_items
+    g = cls.lr0_goto(I, x, add_count, goto_cache)
+  File "E:\Python\ulang\parser\parsergenerator.py", line 423, in lr0_goto
+    s = s1
+UnboundLocalError: local variable 's1' referenced before assignment
+								copyright 2020-2022.3 qfcy

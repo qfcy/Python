@@ -1,11 +1,9 @@
-本仓库用于储存作者长期制作的python源代码, 包含40多个python项目，涉及爬虫、算法、OpenGL、tkinter、面向对象编程等多个领域。  
-
-**本仓库内部分项目如`pyobject`、`tk_dragtool`、`timer_tool`等已经迁出本仓库，新的仓库请移步我的个人主页[github.com/qfcy](https://github.com/qfcy)查看。**  
-**Some projects in this repository including `pyobject`, `tk_dragtool` and `timer_tool`, have been migrated out of this repository. Please visit my personal homepage [github.com/qfcy](https://github.com/qfcy) to view the new repositories.**  
+本仓库用于储存作者长期制作的python源代码, 包含40多个python项目，涉及爬虫、算法、OpenGL、tkinter、面向对象编程等多个领域。 
 
 这些是仓库中的一些亮点项目：
 
 1.图形类
+- solar_system：计算机模拟万有引力、太阳系行星运动。（现已移至仓库[python-gravity-simulation](https://github.com/qfcy/python-gravity-simulation)）
 - opengl：3d图形的渲染，应用简单的OpenGL技术。
 - pygame：pygame的图形渲染，如球体碰撞等。
 
@@ -29,15 +27,15 @@
 
 4.网络类
 - WEB：包含自己的web服务器、爬虫等小项目。
-- WEB \ http文件服务器.py：应用http协议，在本地实现一个http服务器，用于替代Python默认的http.server模块。
+- WEB \ http文件服务器.py：应用http协议，在本地实现一个http服务器，用于替代Python默认的http.server模块。（已移至仓库[python-http-server](https://github.com/qfcy/python-http-server)）
 
 5.命令行
-- pyshell.py及pyshell_w.py：模拟“>>> ”的Python交互式提示符，适合当做第二个python解释器。
+- pyshell.py及pyshell_w.py：模拟“>>> ”的Python交互式提示符，适合当作python解释器的替代。
 - 命令行：包含作者编写的其他命令行程序。
 
 6.其他
-- pyobject：分析Python对象内部结构、python字节码(bytecode)的库，包含pyc文件的压缩、加壳和脱壳的工具。
-- timer_tool.py：Python计时器模块，可用于程序性能分析。
+- pyobject：分析Python对象内部结构、python字节码(bytecode)的库，包含pyc文件的压缩、加壳和脱壳的工具。（现已移至仓库[pyobject](https://github.com/qfcy/pyobject)）
+- timer_tool.py：Python计时器模块，可用于程序性能分析。（已移至仓库[python-timer-tool](https://github.com/qfcy/python-timer-tool)）
 - ulang：应用pyinstxtractor和uncompyle6工具提取的木兰编程语言源代码。
 - event：调用Windows API函数模拟键盘、鼠标事件，可用于键鼠模拟器等，比pyautogui更轻量级。
 - 小项目 \ 音频 \ 生成声波2.py：生成和播放正弦波、方波，甚至白噪声等声波的工具，提供了一些处理音频的函数，如傅里叶变换等。
@@ -49,4 +47,4 @@
 
 7.版权
 
-本仓库遵循GNU General Public License v3.0许可协议。另外，本仓库中未注明“来自其他项目”的源代码，由作者自己编写。
+本仓库遵循MIT许可协议。另外本仓库中未注明“来自其他项目”的源代码，由作者自己编写。

@@ -75,7 +75,8 @@ def interactive():
         try:
             if getattr(sys.stdin,"closed",False): # 其他代码请求了退出Python
                 return
-            code=input(">>> ")
+            print(">>> ",end="",flush=True)
+            code=input()
 
             if c is not None:
                 c.title("{} - {}".format(_TITLE,code))
