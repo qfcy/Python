@@ -5,3 +5,7 @@
 *.idea/*
 *.vs/*
 *.vscode/*
+*小项目/AI/LTP/*
+*小项目/AI/microsoft/*
+*小项目/AI/models/*
+*小项目/AI/stanza_resources/*
